@@ -2,9 +2,13 @@ import { timingSafeEqual } from 'node:crypto';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { SUPPORTED_CITIES } from '../domain/cities.js';
+import { RAIL_SYSTEMS } from '../domain/railSystems.js';
 import type { AlertStore } from '../services/alerts.js';
 import type { ArrivalService } from '../services/arrivals.js';
 import type { JourneyService } from '../services/journeys.js';
+import type { RailAlertService } from '../services/railAlerts.js';
+import type { RailDepartureService } from '../services/railDepartures.js';
+import type { RailStationStore } from '../services/railStations.js';
 import type { StaticDataStore } from '../services/staticData.js';
 
 export interface ServerDependencies {
@@ -13,6 +17,9 @@ export interface ServerDependencies {
   arrivals: ArrivalService;
   alerts: AlertStore;
   staticData: StaticDataStore;
+  railStations: RailStationStore;
+  railDepartures: RailDepartureService;
+  railAlerts: RailAlertService;
   /** 每個 IP 每分鐘最多幾次請求。 */
   rateLimitPerMinute?: number;
   now?: () => number;
@@ -25,6 +32,9 @@ const journeyQuery = z.object({ originLat: lat, originLon: lon, destinationLat: 
 const nearbyQuery = z.object({ lat, lon, radius: z.coerce.number().min(50).max(1000).default(400) });
 const cityQuery = z.object({ city: z.enum(SUPPORTED_CITIES) });
 const arrivalsQuery = cityQuery.extend({ stopUID: z.string().min(1).max(40) });
+const railSystemQuery = z.object({ system: z.enum(RAIL_SYSTEMS) });
+const railDeparturesQuery = railSystemQuery.extend({ stationID: z.string().min(1).max(20) });
+const railNearbyQuery = z.object({ lat, lon, radius: z.coerce.number().min(100).max(3000).default(1500) });
 
 /** 給 App 的精簡 API。所有 /v1 路徑都需要 App 金鑰。 */
 export function buildServer(deps: ServerDependencies): FastifyInstance {
@@ -90,6 +100,22 @@ export function buildServer(deps: ServerDependencies): FastifyInstance {
   app.get('/v1/alerts', async (request) => {
     const q = cityQuery.parse(request.query);
     return { alerts: await deps.alerts.active(q.city), mqttConnected: deps.alerts.mqttConnected };
+  });
+
+  // 軌道（臺鐵、高鐵、捷運）
+  app.get('/v1/rail/stations/nearby', async (request) => {
+    const q = railNearbyQuery.parse(request.query);
+    return { stations: await deps.railStations.nearby({ lat: q.lat, lon: q.lon }, q.radius) };
+  });
+
+  app.get('/v1/rail/departures', async (request) => {
+    const q = railDeparturesQuery.parse(request.query);
+    return deps.railDepartures.departures(q.system, q.stationID);
+  });
+
+  app.get('/v1/rail/alerts', async (request) => {
+    const q = railSystemQuery.parse(request.query);
+    return deps.railAlerts.alerts(q.system);
   });
 
   return app;

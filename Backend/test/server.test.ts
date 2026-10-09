@@ -15,6 +15,9 @@ function makeServer(overrides: Partial<ServerDependencies> = {}) {
     arrivals: { arrivals: vi.fn(async () => new Map([['TPE1001', []]])) },
     alerts: { active: vi.fn(async () => []), mqttConnected: false },
     staticData: { loadedCities: () => ({ Taipei: '2026-10-09T00:00:00.000Z' }) },
+    railStations: { nearby: vi.fn(async () => []) },
+    railDepartures: { departures: vi.fn(async () => ({ system: 'TRTC', stationID: 'BL12', departures: [], note: null })) },
+    railAlerts: { alerts: vi.fn(async () => ({ supported: true, alerts: [] })) },
     log: (message: string) => logs.push(message),
     ...overrides,
   } as unknown as ServerDependencies;
@@ -44,6 +47,17 @@ describe('HTTP API', () => {
     expect(bad.statusCode).toBe(400);
     const badCity = await app.inject({ url: '/v1/alerts?city=Mars', headers: { 'x-app-key': KEY } });
     expect(badCity.statusCode).toBe(400);
+  });
+
+  it('validates rail systems and serves rail routes', async () => {
+    const { app } = makeServer();
+    const ok = await app.inject({ url: '/v1/rail/departures?system=TRTC&stationID=BL12', headers: { 'x-app-key': KEY } });
+    expect(ok.statusCode).toBe(200);
+    const bad = await app.inject({ url: '/v1/rail/departures?system=MRT&stationID=BL12', headers: { 'x-app-key': KEY } });
+    expect(bad.statusCode).toBe(400);
+    const nearby = await app.inject({ url: '/v1/rail/stations/nearby?lat=25.04&lon=121.51', headers: { 'x-app-key': KEY } });
+    expect(nearby.statusCode).toBe(200);
+    expect((await app.inject({ url: '/v1/rail/alerts?system=THSR' })).statusCode).toBe(401);
   });
 
   it('rate limits per client', async () => {

@@ -4,6 +4,10 @@ import { startAlertSubscriber } from './mqtt/alertSubscriber.js';
 import { AlertStore } from './services/alerts.js';
 import { ArrivalService } from './services/arrivals.js';
 import { JourneyService } from './services/journeys.js';
+import { RailAlertService } from './services/railAlerts.js';
+import { RailDepartureService } from './services/railDepartures.js';
+import { RailStationStore } from './services/railStations.js';
+import { RAIL_SYSTEMS } from './domain/railSystems.js';
 import { StaticDataStore } from './services/staticData.js';
 import { TdxTokenProvider } from './tdx/auth.js';
 import { TdxClient } from './tdx/client.js';
@@ -17,6 +21,9 @@ const staticData = new StaticDataStore(api, { dataDir: config.DATA_DIR });
 const arrivals = new ArrivalService(api);
 const alerts = new AlertStore(api);
 const journeys = new JourneyService(staticData, arrivals, { cities: config.CITIES });
+const railStations = new RailStationStore(api, RAIL_SYSTEMS, { dataDir: config.DATA_DIR });
+const railDepartures = new RailDepartureService(api);
+const railAlerts = new RailAlertService(api);
 
 if (config.mqtt) {
   startAlertSubscriber({ ...config.mqtt, cities: config.CITIES, store: alerts, log });
@@ -33,10 +40,12 @@ const warmUp = () =>
     });
     const failed = results.filter((result) => result.status === 'rejected').length;
     log(`static data ready (${results.length - failed}/${results.length} cities)`);
-  });
+  }).then(() => railStations.all()).then((stations) => log(`rail stations ready (${stations.length})`));
 void warmUp();
 setInterval(() => void warmUp(), 24 * 60 * 60 * 1000).unref();
 
-const server = buildServer({ appApiKey: config.APP_API_KEY, journeys, arrivals, alerts, staticData, log });
+const server = buildServer({
+  appApiKey: config.APP_API_KEY, journeys, arrivals, alerts, staticData, railStations, railDepartures, railAlerts, log,
+});
 await server.listen({ host: '0.0.0.0', port: config.PORT });
 log(`listening on ${config.PORT}`);

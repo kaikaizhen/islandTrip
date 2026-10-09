@@ -2,9 +2,10 @@
 
 TDX 保密代理：TDX 密鑰只存在這裡，App 只知道本服務網址與 App 金鑰。部署在家中 NAS（Docker）。
 
-- **REST**：到站時間、站牌、路線（TDX MQTT 目前沒有這些資料）
+- **REST**：公車到站時間、站牌、路線；軌道車站、發車、通阻（TDX MQTT 目前沒有到站資料）
 - **MQTT**：常駐訂閱 `v2/Bus/Alert/City/{縣市}` 通阻消息；斷線或超過 10 分鐘沒更新時，查詢會改用 REST 補抓
-- 縣市：臺北、新北、基隆、桃園、臺中、高雄
+- 公車縣市：臺北、新北、基隆、桃園、臺中、高雄；軌道：臺鐵、高鐵、臺北／新北／桃園機場／高雄／臺中捷運
+- 軌道時間一律以臺北時區換算（NAS 可能設為 UTC）
 - 所有 TDX 欄位依官方規格核對，見 [docs/TDX-FIELDS.md](docs/TDX-FIELDS.md)
 
 ## 設計重點
@@ -38,6 +39,16 @@ npm run build && node --env-file=.env dist/index.js
 | GET | `/v1/stops/nearby?lat&lon&radius` | 附近站牌（50–1000 公尺） |
 | GET | `/v1/arrivals?city&stopUID` | 單一站牌各路線到站預估 |
 | GET | `/v1/alerts?city` | 目前有效的通阻消息 |
+| GET | `/v1/rail/stations/nearby?lat&lon&radius` | 附近臺鐵、高鐵、捷運車站（100–3000 公尺，預設 1500） |
+| GET | `/v1/rail/departures?system&stationID` | 車站即將發車（未來 2 小時、最多 12 班），每筆標示資料等級 |
+| GET | `/v1/rail/alerts?system` | 軌道通阻（捷運 TRTC/KRTC/TYMC/TMRT、高鐵）；不支援時 `supported: false` |
+
+軌道系統 `system`：`TRA`、`THSR`、`TRTC`、`NTMC`、`TYMC`、`KRTC`、`TMRT`。
+
+`dataLevel`（App 必須清楚標示）：
+- `realtime`：臺北／高雄／桃園機場捷運即時看板（桃園僅 A1–A21）、臺鐵即時誤點
+- `timetable`：高鐵、臺鐵沒有即時資料的列車、新北捷運、即時看板沒資料時的捷運
+- `frequency`：臺中捷運（只有班距，`headway` 為最小／最大分鐘）
 
 `arrival.status`：`normal`、`notDeparted`（尚未發車）、`noStop`（交管不停靠）、`lastBusPassed`（末班車已過）、`notOperating`（今日未營運）、`noBus`（目前無車）、`unknown`。
 
