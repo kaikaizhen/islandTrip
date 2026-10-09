@@ -4,8 +4,10 @@ import SwiftUI
 struct BoardingOptionsView: View {
     @Bindable var viewModel: BoardingOptionsViewModel
     let onStart: (_ journey: Journey, _ alternatives: [Journey]) -> Void
+    let makePreview: (RankedJourney) -> RoutePreviewViewModel
 
     @State private var showsOthers = false
+    @State private var preview: RoutePreviewViewModel?
 
     var body: some View {
         ScrollView {
@@ -24,9 +26,17 @@ struct BoardingOptionsView: View {
         .navigationTitle("推薦班次")
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await viewModel.load() }
-        .bottomAction(viewModel.startTitle, systemImage: "location.fill", isEnabled: viewModel.selected != nil) {
+        .bottomAction(viewModel.startTitle, systemImage: "location.fill", isEnabled: viewModel.selected != nil,
+                      secondary: viewModel.selected.map { selected in
+                          ("在地圖上確認", { preview = makePreview(selected) })
+                      }) {
             guard let selected = viewModel.selected else { return }
             onStart(selected.journey, viewModel.alternatives(for: selected))
+        }
+        .sheet(item: $preview) { preview in
+            RoutePreviewView(viewModel: preview) {
+                viewModel.select(preview.ranked)
+            }
         }
         .task { await viewModel.load() }
         .task {

@@ -31,9 +31,10 @@ enum MockTransitFixture {
 
     static func stops(dataTime: Date) -> [String: Stop] {
         let list = [
-            Stop(stopUID: StopID.cityHallToTPE, name: "市政府站", coordinate: Coordinate(latitude: 25.0410, longitude: 121.5660),
+            // 往台北車站（西行）靠右行駛，站牌在忠孝東路北側；使用者在南側，所以需要過馬路。
+            Stop(stopUID: StopID.cityHallToTPE, name: "市政府站", coordinate: Coordinate(latitude: 25.04128, longitude: 121.5660),
                  directionDescription: "往台北車站方向", dataTime: dataTime),
-            Stop(stopUID: StopID.cityHallToBanqiao, name: "市政府站", coordinate: Coordinate(latitude: 25.0412, longitude: 121.5660),
+            Stop(stopUID: StopID.cityHallToBanqiao, name: "市政府站", coordinate: Coordinate(latitude: 25.04092, longitude: 121.5662),
                  directionDescription: "往板橋方向", dataTime: dataTime),
             Stop(stopUID: StopID.tpeMain, name: "台北車站", coordinate: Coordinate(latitude: 25.0477, longitude: 121.5173),
                  directionDescription: "往台北車站方向", dataTime: dataTime),

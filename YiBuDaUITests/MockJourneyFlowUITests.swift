@@ -10,7 +10,7 @@ final class MockJourneyFlowUITests: XCTestCase {
     func testCompleteJourneyWithMockData() throws {
         let app = XCUIApplication()
         app.launch()
-        // 推薦班次畫面在全螢幕導航底下仍存在，所以每次都找目前看得到的主要按鈕。
+        // 推薦班次畫面在全螢幕導航底下仍存在，所以每次都找目前看得到的那個按鈕。
         let primary = app.buttons.matching(identifier: "primaryAction")
 
         // 首頁：搜尋並選目的地
@@ -44,7 +44,7 @@ final class MockJourneyFlowUITests: XCTestCase {
         tapVisible(primary)
 
         // 搭乘中：模擬前進一站後出現「準備下車」
-        tapWhenHittable(app.buttons["secondaryAction"])
+        tapVisible(app.buttons.matching(identifier: "secondaryAction"))
         XCTAssertTrue(app.descendants(matching: .any)["approachingAlight"].waitForExistence(timeout: 5))
         attachScreenshot("6-on-vehicle")
         tapVisible(primary)
@@ -77,7 +77,7 @@ final class MockJourneyFlowUITests: XCTestCase {
             }
             RunLoop.current.run(until: Date().addingTimeInterval(0.2))
         }
-        XCTFail("等不到可點擊的主要按鈕", file: file, line: line)
+        XCTFail("等不到可點擊的按鈕", file: file, line: line)
     }
 
     @MainActor

@@ -10,6 +10,7 @@ struct AppDependencies {
     let favorites: any FavoritePlacesProviding
     let currentPlace: any CurrentPlaceProviding
     let ranking: TransitRankingService
+    let walkingRoutes: any WalkingRouteProviding
 
     /// 目前只有 Mock 模式；Phase 3 加入真實資料來源時在這裡切換。
     static func live() -> AppDependencies {
@@ -21,7 +22,8 @@ struct AppDependencies {
             places: mock,
             favorites: mock,
             currentPlace: mock,
-            ranking: TransitRankingService()
+            ranking: TransitRankingService(),
+            walkingRoutes: MapKitWalkingRouteProvider()
         )
     }
 
@@ -36,6 +38,10 @@ struct AppDependencies {
     func makeNavigationSessionViewModel(_ request: NavigationRequest) -> NavigationSessionViewModel {
         NavigationSessionViewModel(journey: request.journey, alternatives: request.alternatives,
                                    transport: transport, ranking: ranking)
+    }
+
+    func makeRoutePreviewViewModel(_ ranked: RankedJourney) -> RoutePreviewViewModel {
+        RoutePreviewViewModel(ranked: ranked, transport: transport, routes: walkingRoutes)
     }
 
     func makeCapabilityTestViewModel() -> CapabilityTestViewModel {
