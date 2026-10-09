@@ -17,6 +17,9 @@ final class BoardingOptionsViewModel {
     private(set) var ranked: [RankedJourney] = []
     private(set) var recommended: RankedJourney?
     private(set) var selectedID: RankedJourney.ID?
+    /// 影響目前方案的異常消息（改道、停駛…）。
+    private(set) var alerts: [ServiceAlert] = []
+    private(set) var alertsUnavailable = false
     var order: JourneySortOrder = .earliestArrival {
         didSet { rerank() }
     }
@@ -25,6 +28,8 @@ final class BoardingOptionsViewModel {
     private let transport: any TransportProvider
     /// nil 時沿用資料來源提供的步行段（測試用）。
     private let walkPlanner: (any JourneyWalkPlanning)?
+    /// nil 時沒有異常消息（模擬資料）。
+    private let alertProvider: (any ServiceAlertProviding)?
     private let ranking: TransitRankingService
     private let now: () -> Date
 
@@ -33,6 +38,7 @@ final class BoardingOptionsViewModel {
         destination: Place,
         transport: any TransportProvider,
         walkPlanner: (any JourneyWalkPlanning)? = nil,
+        alerts: (any ServiceAlertProviding)? = nil,
         ranking: TransitRankingService = TransitRankingService(),
         now: @escaping () -> Date = Date.init
     ) {
@@ -40,6 +46,7 @@ final class BoardingOptionsViewModel {
         self.destination = destination
         self.transport = transport
         self.walkPlanner = walkPlanner
+        self.alertProvider = alerts
         self.ranking = ranking
         self.now = now
     }
@@ -63,6 +70,7 @@ final class BoardingOptionsViewModel {
             journeys = await walkPlanner?.plan(candidates) ?? candidates
             rerank()
             state = .loaded
+            await loadAlerts()
         } catch {
             state = .failed("找不到班次資料，請檢查網路後再試一次。")
         }
@@ -76,6 +84,29 @@ final class BoardingOptionsViewModel {
         if selectedID == nil || !ranked.contains(where: { $0.id == selectedID }) {
             selectedID = recommended?.id
         }
+    }
+
+    /// 影響這個方案路線的異常消息。
+    func alerts(for journey: RankedJourney) -> [ServiceAlert] {
+        guard let code = journey.option?.routeCode else { return [] }
+        return alerts.filter { $0.routeCodes.contains(code) }
+    }
+
+    /// 只保留影響目前任一方案的消息；取得失敗不影響找車，但要讓使用者知道。
+    private func loadAlerts() async {
+        guard let alertProvider else { return }
+        let cities = Set(journeys.compactMap { $0.busLeg?.option.city })
+        let codes = Set(journeys.compactMap { $0.busLeg?.option.routeCode })
+        var collected: [ServiceAlert] = []
+        alertsUnavailable = false
+        for city in cities.sorted() {
+            do {
+                collected += try await alertProvider.alerts(city: city).filter { !codes.isDisjoint(with: $0.routeCodes) }
+            } catch {
+                alertsUnavailable = true
+            }
+        }
+        alerts = collected
     }
 
     func select(_ journey: RankedJourney) {

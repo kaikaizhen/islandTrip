@@ -21,6 +21,14 @@ struct BoardingOption: Identifiable, Hashable, Sendable {
     var etaSource: ETASource
     var updatedAt: Date
     var rideSeconds: Int?
+    /// 搭乘時間是依站數估計（不是同一部車的預估）。
+    var rideIsEstimated = false
+    /// 沒有預估到站時間的原因，例：「尚未發車」「末班車已過」。
+    var statusNote: String?
+    /// TDX 縣市代碼，例：Taipei。
+    var city: String?
+    /// TDX RouteID（通阻消息以它標示影響的路線）。
+    var routeCode: String?
 }
 
 /// 某站牌的一筆到站預估，用來更新已規劃旅程的 ETA。

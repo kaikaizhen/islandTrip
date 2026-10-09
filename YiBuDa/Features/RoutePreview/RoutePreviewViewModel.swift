@@ -78,23 +78,25 @@ final class RoutePreviewViewModel {
 
         walkToStop = await toStop
         walkToDestination = await toDestination
-        oppositeStop = await details?.oppositeStop
+        oppositeStop = bus.boardingStop.validOpposite(await details?.oppositeStop)
     }
 
     var markers: [RouteMarker] {
         guard let bus else { return [] }
         var markers = [
             RouteMarker(kind: .origin, title: "你在這裡", subtitle: journey.origin.name, coordinate: journey.origin.coordinate),
-            RouteMarker(kind: .boardingStop, title: "在這裡上車", subtitle: "\(bus.boardingStop.name)・\(bus.boardingStop.directionDescription)",
-                        coordinate: bus.boardingStop.coordinate),
             RouteMarker(kind: .alightingStop, title: "在這裡下車", subtitle: bus.alightingStop.name, coordinate: bus.alightingStop.coordinate),
             RouteMarker(kind: .destination, title: "目的地", subtitle: journey.destination.name, coordinate: journey.destination.coordinate),
         ]
-        if let oppositeStop {
+        if let oppositeStop = bus.boardingStop.validOpposite(oppositeStop) {
             markers.append(RouteMarker(kind: .wrongDirectionStop, title: "不是這個",
                                        subtitle: "\(oppositeStop.name)・\(oppositeStop.directionDescription)",
                                        coordinate: oppositeStop.coordinate))
         }
+        // 上車站最後加入：地圖上畫在最上層，不會被其他標記蓋住。
+        markers.append(RouteMarker(kind: .boardingStop, title: "在這裡上車",
+                                   subtitle: "\(bus.boardingStop.name)・\(bus.boardingStop.directionDescription)",
+                                   coordinate: bus.boardingStop.coordinate))
         return markers
     }
 

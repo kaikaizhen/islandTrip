@@ -37,7 +37,7 @@ final class WalkTestViewModel {
         do {
             state = .ready(try await location.currentLocation())
         } catch LocationError.denied {
-            state = .failed("定位權限沒有開啟，請到「設定 > 一步搭 > 位置」開啟。")
+            state = .failed("定位權限沒有開啟，請到「設定 > 島行 > 位置」開啟。")
         } catch {
             state = .failed("暫時無法定位，請到空曠處再試一次。")
         }

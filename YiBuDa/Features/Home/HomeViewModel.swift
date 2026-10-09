@@ -52,7 +52,7 @@ final class HomeViewModel {
             originProblem = nil
         } catch LocationError.denied {
             origin = nil
-            originProblem = "定位權限沒有開啟。可以到「設定 > 一步搭 > 位置」開啟，或手動輸入出發地。"
+            originProblem = "定位權限沒有開啟。可以到「設定 > 島行 > 位置」開啟，或手動輸入出發地。"
         } catch {
             origin = nil
             originProblem = "暫時無法取得目前位置，請到空曠處再試，或手動輸入出發地。"

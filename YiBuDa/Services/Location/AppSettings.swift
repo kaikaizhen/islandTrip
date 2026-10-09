@@ -22,13 +22,13 @@ final class AppSettings {
     private static let locationSourceKey = "locationSource"
     private let defaults: UserDefaults
 
-    /// 班次仍是模擬資料（站牌在台北市政府），所以預設用模擬位置；Phase 3 接上真實資料後改為 GPS。
     var locationSource: LocationSource {
         didSet { defaults.set(locationSource.rawValue, forKey: Self.locationSourceKey) }
     }
 
-    init(defaults: UserDefaults = .standard) {
+    /// - Parameter defaultSource: 使用者還沒選過時的預設值；真實班次時預設 GPS，模擬班次時預設模擬位置。
+    init(defaults: UserDefaults = .standard, defaultSource: LocationSource = .simulated) {
         self.defaults = defaults
-        locationSource = defaults.string(forKey: Self.locationSourceKey).flatMap(LocationSource.init) ?? .simulated
+        locationSource = defaults.string(forKey: Self.locationSourceKey).flatMap(LocationSource.init) ?? defaultSource
     }
 }

@@ -1,0 +1,2018 @@
+{
+ "result": "success",
+ "data": {
+  "routes": [
+   {
+    "travel_time": 2861,
+    "start_time": "2026-10-12T08:19:34",
+    "day": 1,
+    "end_time": "2026-10-12T09:07:15",
+    "transfers": 1,
+    "sections": [
+     {
+      "type": "pedestrian",
+      "actions": [
+       {
+        "action": "depart",
+        "duration": 56
+       },
+       {
+        "action": "arrive",
+        "duration": 0
+       }
+      ],
+      "travelSummary": {
+       "duration": 56,
+       "length": 78.653709
+      },
+      "departure": {
+       "time": "2026-10-12T08:19:34",
+       "place": {
+        "type": "place",
+        "location": {
+         "lat": 25.150101,
+         "lng": 121.522202
+        }
+       }
+      },
+      "arrival": {
+       "time": "2026-10-12T08:20:30",
+       "place": {
+        "name": "泉源3號橋",
+        "type": "station",
+        "location": {
+         "lat": 25.149965,
+         "lng": 121.522743
+        }
+       }
+      },
+      "transport": {
+       "mode": "pedestrian"
+      }
+     },
+     {
+      "type": "transit",
+      "travelSummary": {
+       "duration": 690,
+       "length": 0
+      },
+      "departure": {
+       "time": "2026-10-12T08:20:30",
+       "place": {
+        "name": "泉源3號橋",
+        "type": "station",
+        "location": {
+         "lat": 25.149965,
+         "lng": 121.522743
+        }
+       }
+      },
+      "arrival": {
+       "time": "2026-10-12T08:32:00",
+       "place": {
+        "name": "中央南路",
+        "type": "station",
+        "location": {
+         "lat": 25.132154,
+         "lng": 121.50132
+        }
+       }
+      },
+      "transport": {
+       "mode": "Bus",
+       "name": "小26",
+       "category": "Bus",
+       "headsign": "致遠新村",
+       "shortName": "小26",
+       "longName": "小26北投→頂湖",
+       "route_color": "",
+       "number": "",
+       "type": "Bus",
+       "city": "",
+       "fare": 36
+      },
+      "intermediateStops": [
+       {
+        "departure": {
+         "time": "2026-10-12T08:21:00",
+         "place": {
+          "name": "十八份福德宮",
+          "type": "station",
+          "location": {
+           "lat": 25.147671,
+           "lng": 121.522247
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:22:00",
+         "place": {
+          "name": "大同之家",
+          "type": "station",
+          "location": {
+           "lat": 25.14588,
+           "lng": 121.52314
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:22:30",
+         "place": {
+          "name": "彌陀寺(硫磺谷)",
+          "type": "station",
+          "location": {
+           "lat": 25.14381,
+           "lng": 121.521378
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:23:00",
+         "place": {
+          "name": "泉源別墅",
+          "type": "station",
+          "location": {
+           "lat": 25.142881,
+           "lng": 121.517921
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:24:00",
+         "place": {
+          "name": "上北投",
+          "type": "station",
+          "location": {
+           "lat": 25.14187,
+           "lng": 121.513863
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:24:30",
+         "place": {
+          "name": "八勝園",
+          "type": "station",
+          "location": {
+           "lat": 25.14139,
+           "lng": 121.511703
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:25:00",
+         "place": {
+          "name": "郵政訓練所",
+          "type": "station",
+          "location": {
+           "lat": 25.141171,
+           "lng": 121.509293
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:26:00",
+         "place": {
+          "name": "源之鄉",
+          "type": "station",
+          "location": {
+           "lat": 25.14152,
+           "lng": 121.507729
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:26:30",
+         "place": {
+          "name": "雅敘園",
+          "type": "station",
+          "location": {
+           "lat": 25.140539,
+           "lng": 121.506248
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:27:00",
+         "place": {
+          "name": "華僑會館",
+          "type": "station",
+          "location": {
+           "lat": 25.139315,
+           "lng": 121.505783
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:28:00",
+         "place": {
+          "name": "新北投",
+          "type": "station",
+          "location": {
+           "lat": 25.137697,
+           "lng": 121.504158
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:30:00",
+         "place": {
+          "name": "北投公園",
+          "type": "station",
+          "location": {
+           "lat": 25.136349,
+           "lng": 121.504128
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:31:00",
+         "place": {
+          "name": "第一銀行",
+          "type": "station",
+          "location": {
+           "lat": 25.134514,
+           "lng": 121.502357
+          }
+         }
+        }
+       }
+      ],
+      "agency": {
+       "agency_id": "TPE_0307",
+       "name": "大南汽車",
+       "website": "http://www.dnbus.com.tw/",
+       "reserve": "0",
+       "phone": "0800-089-456"
+      }
+     },
+     {
+      "type": "pedestrian",
+      "actions": [
+       {
+        "action": "depart",
+        "duration": 240
+       },
+       {
+        "action": "arrive",
+        "duration": 0
+       }
+      ],
+      "travelSummary": {
+       "duration": 240,
+       "length": 271
+      },
+      "departure": {
+       "time": "2026-10-12T08:32:00",
+       "place": {
+        "name": "中央南路",
+        "type": "station",
+        "location": {
+         "lat": 25.132154,
+         "lng": 121.50132
+        }
+       }
+      },
+      "arrival": {
+       "time": "2026-10-12T08:36:00",
+       "place": {
+        "name": "北投",
+        "type": "station",
+        "location": {
+         "lat": 25.131819,
+         "lng": 121.49865
+        }
+       }
+      },
+      "transport": {
+       "mode": "pedestrian"
+      }
+     },
+     {
+      "type": "waiting",
+      "actions": [
+       {
+        "action": "depart",
+        "duration": 281
+       },
+       {
+        "action": "arrive",
+        "duration": 0
+       }
+      ],
+      "travelSummary": {
+       "duration": 281,
+       "length": 0
+      },
+      "departure": {
+       "time": "2026-10-12T08:36:00",
+       "place": {
+        "name": "北投",
+        "type": "station",
+        "location": {
+         "lat": 25.131819,
+         "lng": 121.49865
+        }
+       }
+      },
+      "arrival": {
+       "time": "2026-10-12T08:40:41",
+       "place": {
+        "name": "北投",
+        "type": "station",
+        "location": {
+         "lat": 25.131819,
+         "lng": 121.49865
+        }
+       }
+      },
+      "transport": {
+       "mode": "waiting"
+      }
+     },
+     {
+      "type": "transit",
+      "travelSummary": {
+       "duration": 1283,
+       "length": 0
+      },
+      "departure": {
+       "time": "2026-10-12T08:40:41",
+       "place": {
+        "name": "北投",
+        "type": "station",
+        "location": {
+         "lat": 25.131819,
+         "lng": 121.49865
+        }
+       }
+      },
+      "arrival": {
+       "time": "2026-10-12T09:02:04",
+       "place": {
+        "name": "台北車站",
+        "type": "station",
+        "location": {
+         "lat": 25.04631,
+         "lng": 121.517418
+        }
+       }
+      },
+      "transport": {
+       "mode": "MRT",
+       "name": "淡水信義線",
+       "category": "MRT",
+       "headsign": "象山",
+       "shortName": "淡水信義線",
+       "longName": "象山－淡水",
+       "route_color": "d90023",
+       "number": "",
+       "type": "MRT",
+       "city": "",
+       "fareTW": 0
+      },
+      "intermediateStops": [
+       {
+        "departure": {
+         "time": "2026-10-12T08:42:12",
+         "place": {
+          "name": "奇岩",
+          "type": "station",
+          "location": {
+           "lat": 25.125469,
+           "lng": 121.501137
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:43:50",
+         "place": {
+          "name": "唭哩岸",
+          "type": "station",
+          "location": {
+           "lat": 25.120852,
+           "lng": 121.506233
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:45:57",
+         "place": {
+          "name": "石牌",
+          "type": "station",
+          "location": {
+           "lat": 25.114454,
+           "lng": 121.515572
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:47:26",
+         "place": {
+          "name": "明德",
+          "type": "station",
+          "location": {
+           "lat": 25.109816,
+           "lng": 121.518784
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:49:11",
+         "place": {
+          "name": "芝山",
+          "type": "station",
+          "location": {
+           "lat": 25.102718,
+           "lng": 121.522545
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:51:11",
+         "place": {
+          "name": "士林",
+          "type": "station",
+          "location": {
+           "lat": 25.093493,
+           "lng": 121.52623
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:53:12",
+         "place": {
+          "name": "劍潭",
+          "type": "station",
+          "location": {
+           "lat": 25.084202,
+           "lng": 121.524956
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:55:30",
+         "place": {
+          "name": "圓山",
+          "type": "station",
+          "location": {
+           "lat": 25.071409,
+           "lng": 121.520073
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:57:24",
+         "place": {
+          "name": "民權西路",
+          "type": "station",
+          "location": {
+           "lat": 25.062349,
+           "lng": 121.519585
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:58:58",
+         "place": {
+          "name": "雙連",
+          "type": "station",
+          "location": {
+           "lat": 25.057575,
+           "lng": 121.520683
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T09:00:28",
+         "place": {
+          "name": "中山",
+          "type": "station",
+          "location": {
+           "lat": 25.052622,
+           "lng": 121.520363
+          }
+         }
+        }
+       }
+      ],
+      "agency": {
+       "agency_id": "TRTC",
+       "name": "臺北大眾捷運股份有限公司",
+       "website": "http://www.metro.taipei/",
+       "reserve": "0",
+       "phone": "02-218-12345"
+      }
+     },
+     {
+      "type": "pedestrian-station",
+      "actions": [
+       {
+        "action": "depart",
+        "duration": 180
+       },
+       {
+        "action": "arrive",
+        "duration": 0
+       }
+      ],
+      "travelSummary": {
+       "duration": 180,
+       "length": 0
+      },
+      "departure": {
+       "time": "2026-10-12T09:02:04",
+       "place": {
+        "name": "台北車站",
+        "type": "station",
+        "location": {
+         "lat": 25.04631,
+         "lng": 121.517418
+        }
+       }
+      },
+      "arrival": {
+       "time": "2026-10-12T09:05:04",
+       "place": {
+        "name": "台北車站 M1",
+        "type": "exit",
+        "location": {
+         "lat": 25.048231,
+         "lng": 121.518196
+        }
+       }
+      },
+      "transport": {
+       "mode": "pedestrian"
+      }
+     },
+     {
+      "type": "pedestrian",
+      "actions": [
+       {
+        "action": "depart",
+        "duration": 131
+       },
+       {
+        "action": "arrive",
+        "duration": 0
+       }
+      ],
+      "travelSummary": {
+       "duration": 131,
+       "length": 182.541183
+      },
+      "departure": {
+       "time": "2026-10-12T09:05:04",
+       "place": {
+        "name": "台北車站 M1",
+        "type": "exit",
+        "location": {
+         "lat": 25.048231,
+         "lng": 121.518196
+        }
+       }
+      },
+      "arrival": {
+       "time": "2026-10-12T09:07:15",
+       "place": {
+        "type": "place",
+        "location": {
+         "lat": 25.0478,
+         "lng": 121.516998
+        }
+       }
+      },
+      "transport": {
+       "mode": "pedestrian"
+      }
+     }
+    ]
+   },
+   {
+    "travel_time": 3313,
+    "start_time": "2026-10-12T08:19:34",
+    "day": 1,
+    "end_time": "2026-10-12T09:14:47",
+    "transfers": 2,
+    "sections": [
+     {
+      "type": "pedestrian",
+      "actions": [
+       {
+        "action": "depart",
+        "duration": 56
+       },
+       {
+        "action": "arrive",
+        "duration": 0
+       }
+      ],
+      "travelSummary": {
+       "duration": 56,
+       "length": 78.653709
+      },
+      "departure": {
+       "time": "2026-10-12T08:19:34",
+       "place": {
+        "type": "place",
+        "location": {
+         "lat": 25.150101,
+         "lng": 121.522202
+        }
+       }
+      },
+      "arrival": {
+       "time": "2026-10-12T08:20:30",
+       "place": {
+        "name": "泉源3號橋",
+        "type": "station",
+        "location": {
+         "lat": 25.149965,
+         "lng": 121.522743
+        }
+       }
+      },
+      "transport": {
+       "mode": "pedestrian"
+      }
+     },
+     {
+      "type": "transit",
+      "travelSummary": {
+       "duration": 690,
+       "length": 0
+      },
+      "departure": {
+       "time": "2026-10-12T08:20:30",
+       "place": {
+        "name": "泉源3號橋",
+        "type": "station",
+        "location": {
+         "lat": 25.149965,
+         "lng": 121.522743
+        }
+       }
+      },
+      "arrival": {
+       "time": "2026-10-12T08:32:00",
+       "place": {
+        "name": "中央南路",
+        "type": "station",
+        "location": {
+         "lat": 25.132154,
+         "lng": 121.50132
+        }
+       }
+      },
+      "transport": {
+       "mode": "Bus",
+       "name": "小26",
+       "category": "Bus",
+       "headsign": "致遠新村",
+       "shortName": "小26",
+       "longName": "小26北投→頂湖",
+       "route_color": "",
+       "number": "",
+       "type": "Bus",
+       "city": "",
+       "fare": 36
+      },
+      "intermediateStops": [
+       {
+        "departure": {
+         "time": "2026-10-12T08:21:00",
+         "place": {
+          "name": "十八份福德宮",
+          "type": "station",
+          "location": {
+           "lat": 25.147671,
+           "lng": 121.522247
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:22:00",
+         "place": {
+          "name": "大同之家",
+          "type": "station",
+          "location": {
+           "lat": 25.14588,
+           "lng": 121.52314
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:22:30",
+         "place": {
+          "name": "彌陀寺(硫磺谷)",
+          "type": "station",
+          "location": {
+           "lat": 25.14381,
+           "lng": 121.521378
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:23:00",
+         "place": {
+          "name": "泉源別墅",
+          "type": "station",
+          "location": {
+           "lat": 25.142881,
+           "lng": 121.517921
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:24:00",
+         "place": {
+          "name": "上北投",
+          "type": "station",
+          "location": {
+           "lat": 25.14187,
+           "lng": 121.513863
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:24:30",
+         "place": {
+          "name": "八勝園",
+          "type": "station",
+          "location": {
+           "lat": 25.14139,
+           "lng": 121.511703
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:25:00",
+         "place": {
+          "name": "郵政訓練所",
+          "type": "station",
+          "location": {
+           "lat": 25.141171,
+           "lng": 121.509293
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:26:00",
+         "place": {
+          "name": "源之鄉",
+          "type": "station",
+          "location": {
+           "lat": 25.14152,
+           "lng": 121.507729
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:26:30",
+         "place": {
+          "name": "雅敘園",
+          "type": "station",
+          "location": {
+           "lat": 25.140539,
+           "lng": 121.506248
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:27:00",
+         "place": {
+          "name": "華僑會館",
+          "type": "station",
+          "location": {
+           "lat": 25.139315,
+           "lng": 121.505783
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:28:00",
+         "place": {
+          "name": "新北投",
+          "type": "station",
+          "location": {
+           "lat": 25.137697,
+           "lng": 121.504158
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:30:00",
+         "place": {
+          "name": "北投公園",
+          "type": "station",
+          "location": {
+           "lat": 25.136349,
+           "lng": 121.504128
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:31:00",
+         "place": {
+          "name": "第一銀行",
+          "type": "station",
+          "location": {
+           "lat": 25.134514,
+           "lng": 121.502357
+          }
+         }
+        }
+       }
+      ],
+      "agency": {
+       "agency_id": "TPE_0307",
+       "name": "大南汽車",
+       "website": "http://www.dnbus.com.tw/",
+       "reserve": "0",
+       "phone": "0800-089-456"
+      }
+     },
+     {
+      "type": "pedestrian",
+      "actions": [
+       {
+        "action": "depart",
+        "duration": 240
+       },
+       {
+        "action": "arrive",
+        "duration": 0
+       }
+      ],
+      "travelSummary": {
+       "duration": 240,
+       "length": 271
+      },
+      "departure": {
+       "time": "2026-10-12T08:32:00",
+       "place": {
+        "name": "中央南路",
+        "type": "station",
+        "location": {
+         "lat": 25.132154,
+         "lng": 121.50132
+        }
+       }
+      },
+      "arrival": {
+       "time": "2026-10-12T08:36:00",
+       "place": {
+        "name": "北投",
+        "type": "station",
+        "location": {
+         "lat": 25.131819,
+         "lng": 121.49865
+        }
+       }
+      },
+      "transport": {
+       "mode": "pedestrian"
+      }
+     },
+     {
+      "type": "waiting",
+      "actions": [
+       {
+        "action": "depart",
+        "duration": 281
+       },
+       {
+        "action": "arrive",
+        "duration": 0
+       }
+      ],
+      "travelSummary": {
+       "duration": 281,
+       "length": 0
+      },
+      "departure": {
+       "time": "2026-10-12T08:36:00",
+       "place": {
+        "name": "北投",
+        "type": "station",
+        "location": {
+         "lat": 25.131819,
+         "lng": 121.49865
+        }
+       }
+      },
+      "arrival": {
+       "time": "2026-10-12T08:40:41",
+       "place": {
+        "name": "北投",
+        "type": "station",
+        "location": {
+         "lat": 25.131819,
+         "lng": 121.49865
+        }
+       }
+      },
+      "transport": {
+       "mode": "waiting"
+      }
+     },
+     {
+      "type": "transit",
+      "travelSummary": {
+       "duration": 1187,
+       "length": 0
+      },
+      "departure": {
+       "time": "2026-10-12T08:40:41",
+       "place": {
+        "name": "北投",
+        "type": "station",
+        "location": {
+         "lat": 25.131819,
+         "lng": 121.49865
+        }
+       }
+      },
+      "arrival": {
+       "time": "2026-10-12T09:00:28",
+       "place": {
+        "name": "中山",
+        "type": "station",
+        "location": {
+         "lat": 25.052622,
+         "lng": 121.520363
+        }
+       }
+      },
+      "transport": {
+       "mode": "MRT",
+       "name": "淡水信義線",
+       "category": "MRT",
+       "headsign": "象山",
+       "shortName": "淡水信義線",
+       "longName": "象山－淡水",
+       "route_color": "d90023",
+       "number": "",
+       "type": "MRT",
+       "city": "",
+       "fareTW": 0
+      },
+      "intermediateStops": [
+       {
+        "departure": {
+         "time": "2026-10-12T08:42:12",
+         "place": {
+          "name": "奇岩",
+          "type": "station",
+          "location": {
+           "lat": 25.125469,
+           "lng": 121.501137
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:43:50",
+         "place": {
+          "name": "唭哩岸",
+          "type": "station",
+          "location": {
+           "lat": 25.120852,
+           "lng": 121.506233
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:45:57",
+         "place": {
+          "name": "石牌",
+          "type": "station",
+          "location": {
+           "lat": 25.114454,
+           "lng": 121.515572
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:47:26",
+         "place": {
+          "name": "明德",
+          "type": "station",
+          "location": {
+           "lat": 25.109816,
+           "lng": 121.518784
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:49:11",
+         "place": {
+          "name": "芝山",
+          "type": "station",
+          "location": {
+           "lat": 25.102718,
+           "lng": 121.522545
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:51:11",
+         "place": {
+          "name": "士林",
+          "type": "station",
+          "location": {
+           "lat": 25.093493,
+           "lng": 121.52623
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:53:12",
+         "place": {
+          "name": "劍潭",
+          "type": "station",
+          "location": {
+           "lat": 25.084202,
+           "lng": 121.524956
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:55:30",
+         "place": {
+          "name": "圓山",
+          "type": "station",
+          "location": {
+           "lat": 25.071409,
+           "lng": 121.520073
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:57:24",
+         "place": {
+          "name": "民權西路",
+          "type": "station",
+          "location": {
+           "lat": 25.062349,
+           "lng": 121.519585
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T08:58:58",
+         "place": {
+          "name": "雙連",
+          "type": "station",
+          "location": {
+           "lat": 25.057575,
+           "lng": 121.520683
+          }
+         }
+        }
+       }
+      ],
+      "agency": {
+       "agency_id": "TRTC",
+       "name": "臺北大眾捷運股份有限公司",
+       "website": "http://www.metro.taipei/",
+       "reserve": "0",
+       "phone": "02-218-12345"
+      }
+     },
+     {
+      "type": "pedestrian",
+      "actions": [
+       {
+        "action": "depart",
+        "duration": 60
+       },
+       {
+        "action": "arrive",
+        "duration": 0
+       }
+      ],
+      "travelSummary": {
+       "duration": 60,
+       "length": 57
+      },
+      "departure": {
+       "time": "2026-10-12T09:00:28",
+       "place": {
+        "name": "中山",
+        "type": "station",
+        "location": {
+         "lat": 25.052622,
+         "lng": 121.520363
+        }
+       }
+      },
+      "arrival": {
+       "time": "2026-10-12T09:01:28",
+       "place": {
+        "name": "捷運中山站(志仁高中)",
+        "type": "station",
+        "location": {
+         "lat": 25.052868,
+         "lng": 121.519867
+        }
+       }
+      },
+      "transport": {
+       "mode": "pedestrian"
+      }
+     },
+     {
+      "type": "waiting",
+      "actions": [
+       {
+        "action": "depart",
+        "duration": 32
+       },
+       {
+        "action": "arrive",
+        "duration": 0
+       }
+      ],
+      "travelSummary": {
+       "duration": 32,
+       "length": 0
+      },
+      "departure": {
+       "time": "2026-10-12T09:01:28",
+       "place": {
+        "name": "捷運中山站(志仁高中)",
+        "type": "station",
+        "location": {
+         "lat": 25.052868,
+         "lng": 121.519867
+        }
+       }
+      },
+      "arrival": {
+       "time": "2026-10-12T09:02:00",
+       "place": {
+        "name": "捷運中山站(志仁高中)",
+        "type": "station",
+        "location": {
+         "lat": 25.052868,
+         "lng": 121.519867
+        }
+       }
+      },
+      "transport": {
+       "mode": "waiting"
+      }
+     },
+     {
+      "type": "transit",
+      "travelSummary": {
+       "duration": 120,
+       "length": 0
+      },
+      "departure": {
+       "time": "2026-10-12T09:02:00",
+       "place": {
+        "name": "捷運中山站(志仁高中)",
+        "type": "station",
+        "location": {
+         "lat": 25.052868,
+         "lng": 121.519867
+        }
+       }
+      },
+      "arrival": {
+       "time": "2026-10-12T09:04:00",
+       "place": {
+        "name": "圓環(南京)",
+        "type": "station",
+        "location": {
+         "lat": 25.053539,
+         "lng": 121.516899
+        }
+       }
+      },
+      "transport": {
+       "mode": "Bus",
+       "name": "紅25",
+       "category": "Bus",
+       "headsign": "聯合醫院中興院區(塔城)",
+       "shortName": "紅25",
+       "longName": "紅25南港→捷運北門站",
+       "route_color": "",
+       "number": "",
+       "type": "Bus",
+       "city": "",
+       "fare": 18
+      },
+      "intermediateStops": [],
+      "agency": {
+       "agency_id": "TPE_0913",
+       "name": "首都客運",
+       "website": "http://www.capital-bus.com.tw",
+       "reserve": "0",
+       "phone": "0800-000-866"
+      }
+     },
+     {
+      "type": "pedestrian",
+      "actions": [
+       {
+        "action": "depart",
+        "duration": 647
+       },
+       {
+        "action": "arrive",
+        "duration": 0
+       }
+      ],
+      "travelSummary": {
+       "duration": 647,
+       "length": 898.937378
+      },
+      "departure": {
+       "time": "2026-10-12T09:04:00",
+       "place": {
+        "name": "圓環(南京)",
+        "type": "station",
+        "location": {
+         "lat": 25.053539,
+         "lng": 121.516899
+        }
+       }
+      },
+      "arrival": {
+       "time": "2026-10-12T09:14:47",
+       "place": {
+        "type": "place",
+        "location": {
+         "lat": 25.0478,
+         "lng": 121.516998
+        }
+       }
+      },
+      "transport": {
+       "mode": "pedestrian"
+      }
+     }
+    ]
+   },
+   {
+    "travel_time": 2730,
+    "start_time": "2026-10-12T08:59:04",
+    "day": 1,
+    "end_time": "2026-10-12T09:44:34",
+    "transfers": 1,
+    "sections": [
+     {
+      "type": "pedestrian",
+      "actions": [
+       {
+        "action": "depart",
+        "duration": 56
+       },
+       {
+        "action": "arrive",
+        "duration": 0
+       }
+      ],
+      "travelSummary": {
+       "duration": 56,
+       "length": 78.653709
+      },
+      "departure": {
+       "time": "2026-10-12T08:59:04",
+       "place": {
+        "type": "place",
+        "location": {
+         "lat": 25.150101,
+         "lng": 121.522202
+        }
+       }
+      },
+      "arrival": {
+       "time": "2026-10-12T09:00:00",
+       "place": {
+        "name": "泉源3號橋",
+        "type": "station",
+        "location": {
+         "lat": 25.149965,
+         "lng": 121.522743
+        }
+       }
+      },
+      "transport": {
+       "mode": "pedestrian"
+      }
+     },
+     {
+      "type": "transit",
+      "travelSummary": {
+       "duration": 1020,
+       "length": 0
+      },
+      "departure": {
+       "time": "2026-10-12T09:00:00",
+       "place": {
+        "name": "泉源3號橋",
+        "type": "station",
+        "location": {
+         "lat": 25.149965,
+         "lng": 121.522743
+        }
+       }
+      },
+      "arrival": {
+       "time": "2026-10-12T09:17:00",
+       "place": {
+        "name": "捷運石牌站(西安)",
+        "type": "station",
+        "location": {
+         "lat": 25.114729,
+         "lng": 121.515007
+        }
+       }
+      },
+      "transport": {
+       "mode": "Bus",
+       "name": "小8",
+       "category": "Bus",
+       "headsign": "捷運石牌站(西安)",
+       "shortName": "小8",
+       "longName": "小8捷運石牌站→竹子湖",
+       "route_color": "",
+       "number": "",
+       "type": "Bus",
+       "city": "",
+       "fare": 36
+      },
+      "intermediateStops": [
+       {
+        "departure": {
+         "time": "2026-10-12T09:00:30",
+         "place": {
+          "name": "十八份福德宮",
+          "type": "station",
+          "location": {
+           "lat": 25.147671,
+           "lng": 121.522247
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T09:01:00",
+         "place": {
+          "name": "大同之家",
+          "type": "station",
+          "location": {
+           "lat": 25.14588,
+           "lng": 121.52314
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T09:02:00",
+         "place": {
+          "name": "惇敘工商(行義)",
+          "type": "station",
+          "location": {
+           "lat": 25.14332,
+           "lng": 121.527206
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T09:03:00",
+         "place": {
+          "name": "行義路四",
+          "type": "station",
+          "location": {
+           "lat": 25.14028,
+           "lng": 121.527657
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T09:04:00",
+         "place": {
+          "name": "行義路三",
+          "type": "station",
+          "location": {
+           "lat": 25.13765,
+           "lng": 121.528168
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T09:05:00",
+         "place": {
+          "name": "行義路二",
+          "type": "station",
+          "location": {
+           "lat": 25.13578,
+           "lng": 121.528641
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T09:05:30",
+         "place": {
+          "name": "行義路一",
+          "type": "station",
+          "location": {
+           "lat": 25.132847,
+           "lng": 121.528305
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T09:06:00",
+         "place": {
+          "name": "行義路",
+          "type": "station",
+          "location": {
+           "lat": 25.130564,
+           "lng": 121.527924
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T09:06:30",
+         "place": {
+          "name": "明山宮一",
+          "type": "station",
+          "location": {
+           "lat": 25.129093,
+           "lng": 121.527863
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T09:07:00",
+         "place": {
+          "name": "明山宮",
+          "type": "station",
+          "location": {
+           "lat": 25.128107,
+           "lng": 121.529152
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T09:09:00",
+         "place": {
+          "name": "磺溪",
+          "type": "station",
+          "location": {
+           "lat": 25.125904,
+           "lng": 121.527588
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T09:09:30",
+         "place": {
+          "name": "福德廟(行義)",
+          "type": "station",
+          "location": {
+           "lat": 25.124599,
+           "lng": 121.526138
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T09:10:00",
+         "place": {
+          "name": "福德廟(石牌)",
+          "type": "station",
+          "location": {
+           "lat": 25.123569,
+           "lng": 121.525261
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T09:11:00",
+         "place": {
+          "name": "永欣里",
+          "type": "station",
+          "location": {
+           "lat": 25.122217,
+           "lng": 121.523903
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T09:12:00",
+         "place": {
+          "name": "榮光新村(榮總東院)",
+          "type": "station",
+          "location": {
+           "lat": 25.120281,
+           "lng": 121.522675
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T09:13:00",
+         "place": {
+          "name": "榮總一",
+          "type": "station",
+          "location": {
+           "lat": 25.118824,
+           "lng": 121.520554
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T09:14:00",
+         "place": {
+          "name": "榮總",
+          "type": "station",
+          "location": {
+           "lat": 25.11845,
+           "lng": 121.518051
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T09:15:00",
+         "place": {
+          "name": "永明派出所",
+          "type": "station",
+          "location": {
+           "lat": 25.11722,
+           "lng": 121.516365
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T09:16:00",
+         "place": {
+          "name": "綜合市場",
+          "type": "station",
+          "location": {
+           "lat": 25.11599,
+           "lng": 121.515625
+          }
+         }
+        }
+       }
+      ],
+      "agency": {
+       "agency_id": "TPE_0307",
+       "name": "大南汽車",
+       "website": "http://www.dnbus.com.tw/",
+       "reserve": "0",
+       "phone": "0800-089-456"
+      }
+     },
+     {
+      "type": "pedestrian",
+      "actions": [
+       {
+        "action": "depart",
+        "duration": 60
+       },
+       {
+        "action": "arrive",
+        "duration": 0
+       }
+      ],
+      "travelSummary": {
+       "duration": 60,
+       "length": 64
+      },
+      "departure": {
+       "time": "2026-10-12T09:17:00",
+       "place": {
+        "name": "捷運石牌站(西安)",
+        "type": "station",
+        "location": {
+         "lat": 25.114729,
+         "lng": 121.515007
+        }
+       }
+      },
+      "arrival": {
+       "time": "2026-10-12T09:18:00",
+       "place": {
+        "name": "石牌",
+        "type": "station",
+        "location": {
+         "lat": 25.114454,
+         "lng": 121.515572
+        }
+       }
+      },
+      "transport": {
+       "mode": "pedestrian"
+      }
+     },
+     {
+      "type": "waiting",
+      "actions": [
+       {
+        "action": "depart",
+        "duration": 342
+       },
+       {
+        "action": "arrive",
+        "duration": 0
+       }
+      ],
+      "travelSummary": {
+       "duration": 342,
+       "length": 0
+      },
+      "departure": {
+       "time": "2026-10-12T09:18:00",
+       "place": {
+        "name": "石牌",
+        "type": "station",
+        "location": {
+         "lat": 25.114454,
+         "lng": 121.515572
+        }
+       }
+      },
+      "arrival": {
+       "time": "2026-10-12T09:23:42",
+       "place": {
+        "name": "石牌",
+        "type": "station",
+        "location": {
+         "lat": 25.114454,
+         "lng": 121.515572
+        }
+       }
+      },
+      "transport": {
+       "mode": "waiting"
+      }
+     },
+     {
+      "type": "transit",
+      "travelSummary": {
+       "duration": 941,
+       "length": 0
+      },
+      "departure": {
+       "time": "2026-10-12T09:23:42",
+       "place": {
+        "name": "石牌",
+        "type": "station",
+        "location": {
+         "lat": 25.114454,
+         "lng": 121.515572
+        }
+       }
+      },
+      "arrival": {
+       "time": "2026-10-12T09:39:23",
+       "place": {
+        "name": "台北車站",
+        "type": "station",
+        "location": {
+         "lat": 25.04631,
+         "lng": 121.517418
+        }
+       }
+      },
+      "transport": {
+       "mode": "MRT",
+       "name": "淡水信義線",
+       "category": "MRT",
+       "headsign": "大安",
+       "shortName": "淡水信義線",
+       "longName": "大安－北投",
+       "route_color": "d90023",
+       "number": "",
+       "type": "MRT",
+       "city": "",
+       "fareTW": 0
+      },
+      "intermediateStops": [
+       {
+        "departure": {
+         "time": "2026-10-12T09:24:45",
+         "place": {
+          "name": "明德",
+          "type": "station",
+          "location": {
+           "lat": 25.109816,
+           "lng": 121.518784
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T09:26:30",
+         "place": {
+          "name": "芝山",
+          "type": "station",
+          "location": {
+           "lat": 25.102718,
+           "lng": 121.522545
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T09:28:30",
+         "place": {
+          "name": "士林",
+          "type": "station",
+          "location": {
+           "lat": 25.093493,
+           "lng": 121.52623
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T09:30:31",
+         "place": {
+          "name": "劍潭",
+          "type": "station",
+          "location": {
+           "lat": 25.084202,
+           "lng": 121.524956
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T09:32:49",
+         "place": {
+          "name": "圓山",
+          "type": "station",
+          "location": {
+           "lat": 25.071409,
+           "lng": 121.520073
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T09:34:43",
+         "place": {
+          "name": "民權西路",
+          "type": "station",
+          "location": {
+           "lat": 25.062349,
+           "lng": 121.519585
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T09:36:17",
+         "place": {
+          "name": "雙連",
+          "type": "station",
+          "location": {
+           "lat": 25.057575,
+           "lng": 121.520683
+          }
+         }
+        }
+       },
+       {
+        "departure": {
+         "time": "2026-10-12T09:37:47",
+         "place": {
+          "name": "中山",
+          "type": "station",
+          "location": {
+           "lat": 25.052622,
+           "lng": 121.520363
+          }
+         }
+        }
+       }
+      ],
+      "agency": {
+       "agency_id": "TRTC",
+       "name": "臺北大眾捷運股份有限公司",
+       "website": "http://www.metro.taipei/",
+       "reserve": "0",
+       "phone": "02-218-12345"
+      }
+     },
+     {
+      "type": "pedestrian-station",
+      "actions": [
+       {
+        "action": "depart",
+        "duration": 180
+       },
+       {
+        "action": "arrive",
+        "duration": 0
+       }
+      ],
+      "travelSummary": {
+       "duration": 180,
+       "length": 0
+      },
+      "departure": {
+       "time": "2026-10-12T09:39:23",
+       "place": {
+        "name": "台北車站",
+        "type": "station",
+        "location": {
+         "lat": 25.04631,
+         "lng": 121.517418
+        }
+       }
+      },
+      "arrival": {
+       "time": "2026-10-12T09:42:23",
+       "place": {
+        "name": "台北車站 M1",
+        "type": "exit",
+        "location": {
+         "lat": 25.048231,
+         "lng": 121.518196
+        }
+       }
+      },
+      "transport": {
+       "mode": "pedestrian"
+      }
+     },
+     {
+      "type": "pedestrian",
+      "actions": [
+       {
+        "action": "depart",
+        "duration": 131
+       },
+       {
+        "action": "arrive",
+        "duration": 0
+       }
+      ],
+      "travelSummary": {
+       "duration": 131,
+       "length": 182.541183
+      },
+      "departure": {
+       "time": "2026-10-12T09:42:23",
+       "place": {
+        "name": "台北車站 M1",
+        "type": "exit",
+        "location": {
+         "lat": 25.048231,
+         "lng": 121.518196
+        }
+       }
+      },
+      "arrival": {
+       "time": "2026-10-12T09:44:34",
+       "place": {
+        "type": "place",
+        "location": {
+         "lat": 25.0478,
+         "lng": 121.516998
+        }
+       }
+      },
+      "transport": {
+       "mode": "pedestrian"
+      }
+     }
+    ]
+   }
+  ]
+ }
+}

@@ -1,3 +1,7 @@
 // 共用建置設定。個人簽署資訊放在 Local.xcconfig（不進 Git），
 // 範例見 Local.example.xcconfig。
+// 預設不連後端（使用模擬資料）；在 Local.xcconfig 覆寫。
+YIBUDA_BACKEND_URL =
+YIBUDA_APP_KEY =
+
 #include? "Local.xcconfig"

@@ -41,6 +41,19 @@ enum BoardingSide: Hashable, Sendable {
     case unknown
 }
 
+extension Stop {
+    /// 「對面站牌」至少要離上車站這麼遠才有意義；太近代表是同一根站牌（例如同站位的其他路線），
+    /// 標成「不是這個」會誤導，也會在地圖上蓋住上車站。
+    static let minimumOppositeSeparation = 15.0
+
+    /// 只有真的在馬路另一側（距離夠遠）時才回傳對面站牌。
+    func validOpposite(_ candidate: Stop?) -> Stop? {
+        guard let candidate, candidate.stopUID != stopUID,
+              Geo.distance(coordinate, candidate.coordinate) >= Self.minimumOppositeSeparation else { return nil }
+        return candidate
+    }
+}
+
 struct StopDetails: Hashable, Sendable {
     var stop: Stop
     /// 馬路對面、同名但反方向的站牌（若有）。

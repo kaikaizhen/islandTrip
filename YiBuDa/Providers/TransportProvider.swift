@@ -25,6 +25,27 @@ protocol CurrentPlaceProviding: Sendable {
     func currentPlace() async throws -> Place
 }
 
+/// 公車通阻／異常消息（改道、停駛、站牌不停靠…）。
+struct ServiceAlert: Identifiable, Hashable, Sendable {
+    var id: String
+    var title: String
+    var description: String
+    /// TDX Effect：1 改道／站牌不停靠、3 班次減少、4 班次取消、6 站點異動、7 重大延遲…
+    var effect: Int?
+    var routeCodes: [String]
+    var url: URL?
+}
+
+/// 異常消息來源（真實資料時由 NAS 後端提供；模擬資料沒有）。
+protocol ServiceAlertProviding: Sendable {
+    func alerts(city: String) async throws -> [ServiceAlert]
+}
+
+/// 跨運具方案（可轉乘）。真實資料時由 NAS 後端呼叫 TDX MaaS。
+protocol TransitPlanning: Sendable {
+    func plans(from origin: Place, to destination: Place) async throws -> [TransitPlan]
+}
+
 enum TransportProviderError: Error, Equatable {
     case stopNotFound
 }

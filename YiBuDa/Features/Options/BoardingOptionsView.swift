@@ -3,10 +3,13 @@ import SwiftUI
 /// 推薦班次：同站多條路線，主推一班，其他可展開。
 struct BoardingOptionsView: View {
     @Bindable var viewModel: BoardingOptionsViewModel
+    /// 轉乘方案（只供查看）；nil 時不顯示。
+    var plans: TransitPlansViewModel?
     let onStart: (_ journey: Journey, _ alternatives: [Journey]) -> Void
     let makePreview: (RankedJourney) -> RoutePreviewViewModel
 
     @State private var showsOthers = false
+    @Environment(\.isMockTransit) private var isMockTransit
     @State private var preview: RoutePreviewViewModel?
 
     var body: some View {
@@ -19,18 +22,29 @@ struct BoardingOptionsView: View {
                     Spacer()
                     SimulatedBadge()
                 }
-                // 目的地可能是真實地點，但班次仍是固定的模擬資料，必須說清楚。
-                Label("班次與站牌是模擬資料，尚未依這個目的地計算。", systemImage: "info.circle")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                if isMockTransit {
+                    // 目的地可能是真實地點，但班次仍是固定的模擬資料，必須說清楚。
+                    Label("班次與站牌是模擬資料，尚未依這個目的地計算。", systemImage: "info.circle")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                alertBanner
                 content
+                if let plans {
+                    TransitPlansSection(viewModel: plans)
+                        .padding(.top, Theme.spacing)
+                }
             }
             .padding(Theme.spacing)
         }
         .navigationTitle("推薦班次")
         .navigationBarTitleDisplayMode(.inline)
-        .refreshable { await viewModel.load() }
+        .refreshable {
+            async let plansLoad: Void = plans?.load() ?? ()
+            await viewModel.load()
+            await plansLoad
+        }
         .bottomAction(viewModel.startTitle, systemImage: "location.fill", isEnabled: viewModel.selected != nil,
                       secondary: viewModel.selected.map { selected in
                           ("在地圖上確認", { preview = makePreview(selected) })
@@ -44,6 +58,8 @@ struct BoardingOptionsView: View {
             }
         }
         .task { await viewModel.load() }
+        // 轉乘方案較慢（MaaS），獨立載入，不拖住直達公車。
+        .task { if plans?.state == .idle { await plans?.load() } }
         .task {
             // 倒數與「能否趕上」會隨時間改變，定期重新評估。
             while !Task.isCancelled {
@@ -100,12 +116,36 @@ struct BoardingOptionsView: View {
         }
     }
 
+    @ViewBuilder
+    private var alertBanner: some View {
+        if !viewModel.alerts.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(viewModel.alerts) { alert in
+                    VStack(alignment: .leading, spacing: 4) {
+                        SafetyNote(text: alert.title)
+                        if !alert.description.isEmpty {
+                            Text(alert.description)
+                                .font(.body)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+            }
+            .card()
+            .accessibilityIdentifier("serviceAlerts")
+        } else if viewModel.alertsUnavailable {
+            Label("暫時無法取得公車異常消息。", systemImage: "wifi.exclamationmark")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+    }
+
     private func optionButton(_ journey: RankedJourney, now: Date, isRecommended: Bool = false) -> some View {
         Button {
             viewModel.select(journey)
         } label: {
             BoardingOptionCard(ranked: journey, now: now, isRecommended: isRecommended,
-                               isSelected: viewModel.selectedID == journey.id)
+                               isSelected: viewModel.selectedID == journey.id, alerts: viewModel.alerts(for: journey))
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("option-\(journey.option?.routeName ?? journey.id)")

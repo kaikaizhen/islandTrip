@@ -2,8 +2,9 @@ import Foundation
 
 /// 交通資訊的白話文字。集中在這裡，避免各畫面各自拼字串、說法不一致。
 enum TransitFormat {
-    static func busCountdown(_ arrival: Date?, now: Date) -> String {
-        guard let arrival else { return "查無即時預估" }
+    /// - Parameter unavailableText: 沒有預估時間的原因（例：「末班車已過」）；沒有就說「查無即時預估」。
+    static func busCountdown(_ arrival: Date?, now: Date, unavailableText: String? = nil) -> String {
+        guard let arrival else { return unavailableText ?? "查無即時預估" }
         let minutes = Int((arrival.timeIntervalSince(now) / 60).rounded(.up))
         return minutes <= 0 ? "即將進站" : "約 \(minutes) 分鐘到"
     }
@@ -16,8 +17,9 @@ enum TransitFormat {
         date.formatted(date: .omitted, time: .shortened)
     }
 
-    static func arrival(_ date: Date?) -> String {
-        date.map { "預計 \(clock($0)) 到達" } ?? "抵達時間未知"
+    static func arrival(_ date: Date?, isEstimated: Bool = false) -> String {
+        guard let date else { return "抵達時間未知" }
+        return "預計 \(clock(date)) 到達" + (isEstimated ? "（估計）" : "")
     }
 
     static func updated(_ date: Date, isStale: Bool) -> String {

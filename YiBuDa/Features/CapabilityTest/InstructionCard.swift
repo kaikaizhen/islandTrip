@@ -7,7 +7,7 @@ struct InstructionCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.spacing) {
-            SimulatedBadge()
+            SimulatedBadge(always: true)
 
             ManeuverArrow(maneuver: step.maneuver, size: arrowSize)
                 .frame(maxWidth: .infinity)

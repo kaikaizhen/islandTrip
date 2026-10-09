@@ -5,6 +5,7 @@ struct SettingsView: View {
     @Bindable var settings: AppSettings
     let makeCapabilityTestViewModel: () -> CapabilityTestViewModel
     let onOpenWalkTest: () -> Void
+    @Environment(\.isMockTransit) private var isMockTransit
 
     var body: some View {
         List {
@@ -19,11 +20,16 @@ struct SettingsView: View {
             } header: {
                 Text("位置來源")
             } footer: {
-                Text("班次目前是模擬資料，站牌在台北市政府附近。不在台北時，可用「模擬」走完公車流程；「步行導航測試」則一律使用 GPS。")
+                Text(isMockTransit ? "班次目前是模擬資料，站牌在台北市政府附近。不在台北時，可用「模擬」走完公車流程；「步行導航測試」則一律使用 GPS。" : "使用真實班次時請選 GPS；「模擬」只適合沒有網路時展示流程。")
             }
             Section("資料來源") {
-                Label("班次：模擬資料（不是即時班次）", systemImage: "testtube.2")
-                    .font(.title3)
+                if isMockTransit {
+                    Label("班次：模擬資料（不是即時班次）", systemImage: "testtube.2")
+                        .font(.title3)
+                } else {
+                    Label("班次：TDX 即時資料（經家中 NAS）", systemImage: "bus.fill")
+                        .font(.title3)
+                }
                 Label("地點搜尋、步行路線：Apple 地圖", systemImage: "map")
                     .font(.title3)
             }

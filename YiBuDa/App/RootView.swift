@@ -16,13 +16,15 @@ struct RootView: View {
             HomeView(
                 viewModel: homeViewModel,
                 onSearchBuses: router.showOptions,
-                onOpenSettings: router.showSettings
+                onOpenSettings: router.showSettings,
+                onOpenStations: router.showNearbyStations
             )
             .navigationDestination(for: AppRoute.self) { route in
                 switch route {
                 case .options(let origin, let destination):
                     BoardingOptionsScreen(
                         viewModel: dependencies.makeBoardingOptionsViewModel(origin: origin, destination: destination),
+                        plans: dependencies.makeTransitPlansViewModel(origin: origin, destination: destination),
                         onStart: { journey, alternatives in
                             router.startNavigation(journey: journey, alternatives: alternatives,
                                                    tracksLocation: dependencies.settings.locationSource == .gps)
@@ -33,6 +35,11 @@ struct RootView: View {
                     SettingsView(settings: dependencies.settings,
                                  makeCapabilityTestViewModel: dependencies.makeCapabilityTestViewModel,
                                  onOpenWalkTest: router.showWalkTest)
+                case .nearbyStations(let origin):
+                    NearbyStationsScreen(viewModel: dependencies.makeNearbyStationsViewModel(origin: origin),
+                                         onSelect: router.showStationBoard)
+                case .stationBoard(let station):
+                    StationBoardScreen(viewModel: dependencies.makeStationBoardViewModel(station))
                 case .walkTest:
                     WalkTestScreen(viewModel: dependencies.makeWalkTestViewModel()) { journey in
                         router.startNavigation(journey: journey, alternatives: [], tracksLocation: true)
@@ -40,11 +47,13 @@ struct RootView: View {
                 }
             }
         }
+        .environment(\.isMockTransit, dependencies.isMockTransit)
         .fullScreenCover(item: $router.navigation) { request in
             NavigationSessionScreen(
                 viewModel: dependencies.makeNavigationSessionViewModel(request),
                 onFinish: router.finishNavigation
             )
+            .environment(\.isMockTransit, dependencies.isMockTransit)
         }
     }
 }
@@ -52,11 +61,29 @@ struct RootView: View {
 /// 以 @State 持有 ViewModel，避免父畫面重繪時重建而遺失狀態。
 private struct BoardingOptionsScreen: View {
     @State var viewModel: BoardingOptionsViewModel
+    @State var plans: TransitPlansViewModel
     let onStart: (Journey, [Journey]) -> Void
     let makePreview: (RankedJourney) -> RoutePreviewViewModel
 
     var body: some View {
-        BoardingOptionsView(viewModel: viewModel, onStart: onStart, makePreview: makePreview)
+        BoardingOptionsView(viewModel: viewModel, plans: plans, onStart: onStart, makePreview: makePreview)
+    }
+}
+
+private struct NearbyStationsScreen: View {
+    @State var viewModel: NearbyStationsViewModel
+    let onSelect: (RailStation) -> Void
+
+    var body: some View {
+        NearbyStationsView(viewModel: viewModel, onSelect: onSelect)
+    }
+}
+
+private struct StationBoardScreen: View {
+    @State var viewModel: StationBoardViewModel
+
+    var body: some View {
+        StationBoardView(viewModel: viewModel)
     }
 }
 
