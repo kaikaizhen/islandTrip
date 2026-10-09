@@ -82,6 +82,39 @@ describe('matching', () => {
     expect(candidates.map((c) => [c.boarding.stop.uid, c.alighting.stop.uid])).toEqual([['TPE1005', 'TPE1002']]);
   });
 
+  // 真實資料重現（臺北「泉源3號橋」）：同一根站牌每條路線各有一個 StopUID，
+  // 同站位的其他路線站牌不能被當成「對面」。
+  it('never treats another route at the same pole (same StationID) as the opposite stop', () => {
+    const qy = (uid: string, lat: number, lon: number, station: string, bearing: string) => ({
+      StopUID: uid, StopName: { Zh_tw: '泉源3號橋' }, StopPosition: { PositionLat: lat, PositionLon: lon }, Bearing: bearing, StationID: station,
+    });
+    const data = buildCityData(
+      'Taipei',
+      parseList(tdxStop, [
+        qy('TPE198097', 25.150204, 121.522434, '1165604756', 'SW'), // 小7 去程（上車站）
+        qy('TPE217196', 25.15026, 121.522365, '1165604756', 'SW'), // 小8區，同一根站牌，相距 9 公尺
+        qy('TPE207794', 25.149966, 121.522745, '1165606405', 'S'), // 小7 返程，對面，相距 41 公尺
+      ]).items,
+      parseList(tdxStopOfRoute, [
+        { RouteUID: 'TPE7', RouteName: { Zh_tw: '小7' }, SubRouteUID: 'TPE7', Direction: 0, Stops: [{ StopUID: 'TPE198097', StopSequence: 5 }] },
+        { RouteUID: 'TPE8Q', RouteName: { Zh_tw: '小8區' }, SubRouteUID: 'TPE8Q', Direction: 0, Stops: [{ StopUID: 'TPE217196', StopSequence: 3 }] },
+        { RouteUID: 'TPE7', RouteName: { Zh_tw: '小7' }, SubRouteUID: 'TPE7', Direction: 1, Stops: [{ StopUID: 'TPE207794', StopSequence: 9 }] },
+      ]).items,
+      [],
+      0,
+    );
+    const boarding = data.stopsByUID.get('TPE198097')!;
+    expect(findOppositeStop(data, boarding, 'TPE7|TPE7|0')?.uid).toBe('TPE207794');
+  });
+
+  it('without StationID, requires real separation before calling a stop opposite', () => {
+    const data = taipei();
+    const boarding = { ...data.stopsByUID.get('TPE1001')!, stationID: null };
+    const nearTwin = { ...boarding, uid: 'TPE1001B', lat: boarding.lat + 0.00005 };
+    const withTwin = { ...data, stops: [...data.stops.map((s) => (s.uid === 'TPE1002' ? { ...s, stationID: null } : s)), nearTwin] };
+    expect(findOppositeStop(withTwin, boarding, 'TPE265|TPE265A|0')?.uid).toBe('TPE1002');
+  });
+
   it('finds the same-name stop across the road that this direction does not serve', () => {
     const data = taipei();
     const boarding = data.stopsByUID.get('TPE1001')!;

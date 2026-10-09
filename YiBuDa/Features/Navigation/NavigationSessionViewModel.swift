@@ -354,7 +354,7 @@ final class NavigationSessionViewModel {
 
     /// 接近上車站時，用兩側站牌判斷使用者在哪一側；連續一致才採用。
     private func updateBoardingEstimate(with sample: LocationSample) {
-        guard let bus, let opposite = stopDetails?.oppositeStop else { return }
+        guard let bus, let opposite = bus.boardingStop.validOpposite(stopDetails?.oppositeStop) else { return }
         switch phase {
         case .walkingToStop, .checkingBoardingSide: break
         default: return

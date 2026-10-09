@@ -56,4 +56,24 @@ struct RoutePreviewViewModelTests {
         #expect(walk.coordinates.count == 2)
         #expect(sut.walkSummary(sut.walkToStop).contains("無法取得步行路線"))
     }
+
+    @Test func samePoleOppositeIsIgnoredSoBoardingStopStaysVisible() async throws {
+        let journeys = MockTransitFixture.journeys(origin: MockTransitFixture.currentPlace,
+                                                   destination: MockTransitFixture.taipeiMainStation, now: now)
+        let ranked = try #require(TransitRankingService().rank(journeys, now: now).first)
+        let boarding = try #require(ranked.journey.busLeg?.boardingStop)
+        // 真實資料情境：同站位的另一條路線站牌，只差 9 公尺
+        var twin = boarding
+        twin.stopUID = "TWIN"
+        twin.coordinate = offset(boarding.coordinate, north: 9)
+        #expect(boarding.validOpposite(twin) == nil)
+        var across = boarding
+        across.stopUID = "ACROSS"
+        across.coordinate = offset(boarding.coordinate, north: 41)
+        #expect(boarding.validOpposite(across)?.stopUID == "ACROSS")
+
+        let sut = try makeSUT()
+        await sut.load()
+        #expect(sut.markers.last?.kind == .boardingStop, "上車站畫在最上層")
+    }
 }

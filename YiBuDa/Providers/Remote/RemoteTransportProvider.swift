@@ -24,7 +24,9 @@ actor RemoteTransportProvider: TransportProvider, ServiceAlertProviding {
         return response.candidates.map { candidate in
             let journey = Self.journey(from: candidate, origin: origin, destination: destination, generatedAt: generatedAt)
             if let bus = journey.busLeg {
-                let opposite = candidate.oppositeStop.map { Self.stop($0, direction: Self.bearingText($0.bearing), dataTime: generatedAt) }
+                let opposite = bus.boardingStop.validOpposite(
+                    candidate.oppositeStop.map { Self.stop($0, direction: Self.bearingText($0.bearing), dataTime: generatedAt) }
+                )
                 // 多條路線共用同一上車站時，對面站牌是同一個實體位置：找到過就保留，不被其他路線的空值覆蓋。
                 let known = knownStops[bus.boardingStop.stopUID]?.opposite
                 knownStops[bus.boardingStop.stopUID] = (bus.boardingStop, opposite ?? known, candidate.city)

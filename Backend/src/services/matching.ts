@@ -69,18 +69,31 @@ function score(candidate: DirectCandidate): number {
 }
 
 /**
- * 馬路對面同名、但不是這條路線這個方向的站牌（給上車側判斷用）。
+ * 馬路對面同名、反方向的站牌（給上車側判斷用）。
+ * TDX 臺北市資料「同一根站牌、每條路線各有一個 StopUID」，所以必須用站位（StationID）分辨實體位置：
+ * 同站位＝同一根站牌（同一側），不能當成對面。沒有站位資料時至少要相距 minSeparation 公尺。
  * 找不到時回傳 undefined，不硬猜。
  */
-export function findOppositeStop(data: CityStaticData, boarding: StopRecord, routeKey: string, maxDistance = 120): StopRecord | undefined {
-  let best: { stop: StopRecord; distance: number } | undefined;
+export function findOppositeStop(
+  data: CityStaticData,
+  boarding: StopRecord,
+  routeKey: string,
+  maxDistance = 120,
+  minSeparation = 15,
+): StopRecord | undefined {
+  let best: { stop: StopRecord; score: number } | undefined;
   for (const stop of data.stops) {
     if (stop.uid === boarding.uid || stop.name !== boarding.name) continue;
+    if (boarding.stationID && stop.stationID && stop.stationID === boarding.stationID) continue;
     const distance = distanceMeters(boarding, stop);
     if (distance > maxDistance) continue;
+    if ((!boarding.stationID || !stop.stationID) && distance < minSeparation) continue;
     const servesSameDirection = (data.routesByStop.get(stop.uid) ?? []).some((ref) => ref.routeKey === routeKey);
     if (servesSameDirection) continue;
-    if (!best || distance < best.distance) best = { stop, distance };
+    // 方位不同（例如西南行 vs 南行）優先，其次是距離近。
+    const sameBearing = boarding.bearing != null && stop.bearing === boarding.bearing;
+    const score = distance + (sameBearing ? 1000 : 0);
+    if (!best || score < best.score) best = { stop, score };
   }
   return best?.stop;
 }
