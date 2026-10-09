@@ -27,7 +27,7 @@ struct BoardingOptionCard: View {
                 Text("在 \(bus.boardingStop.name)（\(bus.boardingStop.directionDescription)）上車")
                     .font(.body)
                 if let walk = ranked.journey.walkToStop {
-                    Label(TransitFormat.walkMinutes(walk.seconds), systemImage: "figure.walk")
+                    Label(TransitFormat.walkMinutes(walk.seconds) + (walk.isEstimated ? "（估計）" : ""), systemImage: "figure.walk")
                         .font(.body)
                 }
                 adaptiveRow {

@@ -13,9 +13,13 @@ struct AppDependencies {
     let walkingRoutes: any WalkingRouteProviding
     let settings: AppSettings
     let location: any LocationProviding
+    /// nil 時沿用模擬步行段（UI 測試離線用）。
+    let walkPlanner: (any JourneyWalkPlanning)?
 
     /// UI 測試用的啟動參數：目的地搜尋改用離線模擬資料，讓測試不依賴網路。
     static let mockPlaceSearchArgument = "-mockPlaceSearch"
+    /// UI 測試用的啟動參數：步行段沿用模擬資料（步驟數固定），不向 Apple 地圖要路線。
+    static let mockWalkingArgument = "-mockWalking"
 
     /// 交通資料目前只有 Mock；Phase 3 加入真實資料來源時在這裡切換。目的地搜尋使用 Apple MapKit。
     static func live(arguments: [String] = ProcessInfo.processInfo.arguments) -> AppDependencies {
@@ -23,6 +27,7 @@ struct AppDependencies {
         let places: any PlaceSearching = arguments.contains(mockPlaceSearchArgument) ? mock : MapKitPlaceSearch()
         let settings = AppSettings()
         let location = CoreLocationProvider()
+        let walkingRoutes = MapKitWalkingRouteProvider()
         return AppDependencies(
             liveActivity: ActivityKitLiveActivityController(),
             notifications: UserNotificationScheduler(),
@@ -33,9 +38,10 @@ struct AppDependencies {
                 settings: settings, gps: GPSCurrentPlaceProvider(location: location), simulated: mock
             ),
             ranking: TransitRankingService(),
-            walkingRoutes: MapKitWalkingRouteProvider(),
+            walkingRoutes: walkingRoutes,
             settings: settings,
-            location: location
+            location: location,
+            walkPlanner: arguments.contains(mockWalkingArgument) ? nil : WalkingJourneyPlanner(routes: walkingRoutes)
         )
     }
 
@@ -44,7 +50,8 @@ struct AppDependencies {
     }
 
     func makeBoardingOptionsViewModel(origin: Place, destination: Place) -> BoardingOptionsViewModel {
-        BoardingOptionsViewModel(origin: origin, destination: destination, transport: transport, ranking: ranking)
+        BoardingOptionsViewModel(origin: origin, destination: destination, transport: transport,
+                                 walkPlanner: walkPlanner, ranking: ranking)
     }
 
     func makeNavigationSessionViewModel(_ request: NavigationRequest) -> NavigationSessionViewModel {

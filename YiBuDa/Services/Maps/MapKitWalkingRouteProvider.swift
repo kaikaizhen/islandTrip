@@ -12,15 +12,21 @@ struct MapKitWalkingRouteProvider: WalkingRouteProviding {
         let response = try await MKDirections(request: request).calculate()
         guard let route = response.routes.first else { throw WalkingRouteError.noRoute }
 
-        let polyline = route.polyline
+        return WalkingRoute(
+            coordinates: Self.coordinates(of: route.polyline),
+            expectedSeconds: Int(route.expectedTravelTime.rounded()),
+            distanceMeters: Int(route.distance.rounded()),
+            steps: route.steps.map { step in
+                WalkingRoute.Step(mapKitInstruction: step.instructions, distanceMeters: Int(step.distance.rounded()),
+                                  coordinates: Self.coordinates(of: step.polyline))
+            }
+        )
+    }
+
+    private static func coordinates(of polyline: MKPolyline) -> [Coordinate] {
         var points = [CLLocationCoordinate2D](repeating: kCLLocationCoordinate2DInvalid, count: polyline.pointCount)
         polyline.getCoordinates(&points, range: NSRange(location: 0, length: polyline.pointCount))
-
-        return WalkingRoute(
-            coordinates: points.map { Coordinate(latitude: $0.latitude, longitude: $0.longitude) },
-            expectedSeconds: Int(route.expectedTravelTime.rounded()),
-            distanceMeters: Int(route.distance.rounded())
-        )
+        return points.map { Coordinate(latitude: $0.latitude, longitude: $0.longitude) }
     }
 }
 

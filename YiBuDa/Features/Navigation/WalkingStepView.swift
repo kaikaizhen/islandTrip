@@ -25,6 +25,13 @@ struct WalkingStepView: View {
                         .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityIdentifier("currentInstruction")
+                    if let detail = instruction.detailText {
+                        Text(detail)
+                            .font(.title3)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                     if let safetyNote = instruction.safetyNote {
                         SafetyNote(text: safetyNote)
                     }
