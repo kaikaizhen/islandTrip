@@ -11,7 +11,13 @@ Config/Local.xcconfig
 *.secret
 .env
 .dev.vars
-docs/
+/docs/
 
 # macOS
 .DS_Store
+
+# Backend
+Backend/node_modules/
+Backend/dist/
+Backend/data/
+Backend/.env

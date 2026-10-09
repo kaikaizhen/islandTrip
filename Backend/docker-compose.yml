@@ -1,0 +1,14 @@
+# NAS 部署用。密鑰放在同目錄的 .env（不進 Git）。
+services:
+  yibuda-backend:
+    image: yibuda-backend:latest
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATA_DIR: /data
+    ports:
+      - "8080:8080"
+    volumes:
+      # 每天下載的靜態資料快取，重啟後不必重抓
+      - ./data:/data
