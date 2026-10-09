@@ -9,6 +9,8 @@ final class LiveActivitySmokeUITests: XCTestCase {
     func testSimulatedNavigationFlow() throws {
         let app = XCUIApplication()
         app.launch()
+        app.buttons["設定"].tap()
+        app.buttons["能力測試：動態島與通知"].tap()
 
         app.buttons["開始模擬導航"].tap()
         let card = app.descendants(matching: .any)["instructionCard"]

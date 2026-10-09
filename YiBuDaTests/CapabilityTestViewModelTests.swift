@@ -3,15 +3,15 @@ import Testing
 @testable import YiBuDa
 
 @MainActor
-struct HomeViewModelTests {
+struct CapabilityTestViewModelTests {
     let fixedNow = Date(timeIntervalSince1970: 1_800_000_000)
 
     func makeSUT(
         liveActivity: FakeLiveActivityController = FakeLiveActivityController(),
         notifications: FakeNotificationScheduler = FakeNotificationScheduler(permission: .authorized)
-    ) -> HomeViewModel {
+    ) -> CapabilityTestViewModel {
         let now = fixedNow
-        return HomeViewModel(script: .phase0, liveActivity: liveActivity, notifications: notifications, now: { now })
+        return CapabilityTestViewModel(script: .phase0, liveActivity: liveActivity, notifications: notifications, now: { now })
     }
 
     // MARK: 模擬導航
@@ -113,7 +113,7 @@ struct HomeViewModelTests {
 
         let scheduled = await notifications.scheduled
         #expect(scheduled.count == 1)
-        #expect(scheduled.first?.1 == HomeViewModel.testNotificationDelay)
+        #expect(scheduled.first?.1 == CapabilityTestViewModel.testNotificationDelay)
         #expect(scheduled.first?.0.title.contains("模擬") == true)
         #expect(sut.notice?.kind == .info)
     }
