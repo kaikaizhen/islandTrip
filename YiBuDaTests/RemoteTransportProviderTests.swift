@@ -139,6 +139,49 @@ struct RemoteTransportProviderTests {
         }
     }
 
+    func makeRailProvider(_ handler: @escaping (URLRequest) -> (Int, Data)) -> RemoteRailProvider {
+        StubURLProtocol.handler = handler
+        let session = URLSession(configuration: {
+            let config = URLSessionConfiguration.ephemeral
+            config.protocolClasses = [StubURLProtocol.self]
+            return config
+        }())
+        return RemoteRailProvider(client: BackendClient(configuration: configuration, session: session))
+    }
+
+    @Test func railDeparturesKeepDataLevelAndHeadway() async throws {
+        let json = """
+        {"system":"TMRT","stationID":"103","generatedAt":"2026-10-12T00:00:00.000Z","note":"此系統只提供班距，沒有每班時間。",
+         "departures":[
+          {"line":"G","trainNo":null,"destination":null,"direction":null,"scheduledAt":null,"expectedAt":null,"delayMinutes":null,
+           "headway":{"minMinutes":4,"maxMinutes":6},"status":"normal","dataLevel":"frequency"},
+          {"line":"自強","trainNo":"111","destination":"高雄","direction":"順行","scheduledAt":"2026-10-12T00:10:00.000Z",
+           "expectedAt":"2026-10-12T00:15:00.000Z","delayMinutes":5,"headway":null,"status":"normal","dataLevel":"realtime"}
+         ]}
+        """
+        let provider = makeRailProvider(respond(json))
+        let station = RailStation(system: .tmrt, stationID: "103", name: "文心崇德", coordinate: Coordinate(latitude: 24.17, longitude: 120.68))
+        let board = try await provider.board(for: station)
+        #expect(StubURLProtocol.lastRequest?.url?.query()?.contains("system=TMRT") == true)
+        #expect(board.note == "此系統只提供班距，沒有每班時間。")
+        #expect(board.departures[0].headway == 4...6)
+        #expect(board.departures[0].dataLevel == .frequency)
+        #expect(board.departures[1].delayMinutes == 5)
+        #expect(board.departures[1].expectedAt == ISODate.parse("2026-10-12T00:15:00.000Z"))
+    }
+
+    @Test func railAlertsUnsupportedIsNil() async throws {
+        let provider = makeRailProvider(respond(#"{"supported":false,"alerts":[]}"#))
+        #expect(try await provider.alerts(for: .tra) == nil)
+    }
+
+    @Test func nearbyRailStationsAreMapped() async throws {
+        let provider = makeRailProvider(respond(#"{"stations":[{"system":"TRTC","systemName":"臺北捷運","uid":"TRTC-BL18","id":"BL18","name":"市政府","lat":25.0412,"lon":121.5652,"distance":35}]}"#))
+        let stations = try await provider.nearbyStations(around: testOrigin, radius: 1500)
+        #expect(stations.map(\.id) == ["TRTC-BL18"])
+        #expect(stations.first?.distance == 35)
+    }
+
     @Test func alertsAreMapped() async throws {
         let provider = makeProvider(respond(BackendSamples.alerts))
         let alerts = try await provider.alerts(city: "Taipei")

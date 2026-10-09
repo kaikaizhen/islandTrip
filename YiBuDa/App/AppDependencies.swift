@@ -17,6 +17,7 @@ struct AppDependencies {
     let walkPlanner: (any JourneyWalkPlanning)?
     let heading: any HeadingProviding
     let alerts: (any ServiceAlertProviding)?
+    let rail: any RailInfoProviding
     /// 班次是否為模擬資料（未設定後端，或 UI 測試）。
     let isMockTransit: Bool
 
@@ -55,6 +56,7 @@ struct AppDependencies {
             walkPlanner: arguments.contains(mockWalkingArgument) ? nil : WalkingJourneyPlanner(routes: walkingRoutes),
             heading: CoreLocationHeadingProvider(),
             alerts: remote,
+            rail: backend.map { RemoteRailProvider(client: BackendClient(configuration: $0)) } ?? MockRailProvider(),
             isMockTransit: remote == nil
         )
     }
@@ -92,6 +94,14 @@ struct AppDependencies {
     /// 步行測試一律用真實 GPS 與 Apple 地圖。
     func makeWalkTestViewModel() -> WalkTestViewModel {
         WalkTestViewModel(location: location, places: places, planner: WalkingJourneyPlanner(routes: walkingRoutes))
+    }
+
+    func makeNearbyStationsViewModel(origin: Place) -> NearbyStationsViewModel {
+        NearbyStationsViewModel(origin: origin, rail: rail)
+    }
+
+    func makeStationBoardViewModel(_ station: RailStation) -> StationBoardViewModel {
+        StationBoardViewModel(station: station, rail: rail)
     }
 
     func makeCapabilityTestViewModel() -> CapabilityTestViewModel {

@@ -5,6 +5,8 @@ enum AppRoute: Hashable {
     case options(origin: Place, destination: Place)
     case settings
     case walkTest
+    case nearbyStations(origin: Place)
+    case stationBoard(RailStation)
 }
 
 /// 要開始的一趟導航（全螢幕呈現）。
@@ -37,6 +39,14 @@ final class AppRouter {
 
     func showWalkTest() {
         path.append(.walkTest)
+    }
+
+    func showNearbyStations(origin: Place) {
+        path.append(.nearbyStations(origin: origin))
+    }
+
+    func showStationBoard(_ station: RailStation) {
+        path.append(.stationBoard(station))
     }
 
     /// 導航結束後回到首頁。

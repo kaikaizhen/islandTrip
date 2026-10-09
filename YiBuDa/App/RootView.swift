@@ -16,7 +16,8 @@ struct RootView: View {
             HomeView(
                 viewModel: homeViewModel,
                 onSearchBuses: router.showOptions,
-                onOpenSettings: router.showSettings
+                onOpenSettings: router.showSettings,
+                onOpenStations: router.showNearbyStations
             )
             .navigationDestination(for: AppRoute.self) { route in
                 switch route {
@@ -33,6 +34,11 @@ struct RootView: View {
                     SettingsView(settings: dependencies.settings,
                                  makeCapabilityTestViewModel: dependencies.makeCapabilityTestViewModel,
                                  onOpenWalkTest: router.showWalkTest)
+                case .nearbyStations(let origin):
+                    NearbyStationsScreen(viewModel: dependencies.makeNearbyStationsViewModel(origin: origin),
+                                         onSelect: router.showStationBoard)
+                case .stationBoard(let station):
+                    StationBoardScreen(viewModel: dependencies.makeStationBoardViewModel(station))
                 case .walkTest:
                     WalkTestScreen(viewModel: dependencies.makeWalkTestViewModel()) { journey in
                         router.startNavigation(journey: journey, alternatives: [], tracksLocation: true)
@@ -59,6 +65,23 @@ private struct BoardingOptionsScreen: View {
 
     var body: some View {
         BoardingOptionsView(viewModel: viewModel, onStart: onStart, makePreview: makePreview)
+    }
+}
+
+private struct NearbyStationsScreen: View {
+    @State var viewModel: NearbyStationsViewModel
+    let onSelect: (RailStation) -> Void
+
+    var body: some View {
+        NearbyStationsView(viewModel: viewModel, onSelect: onSelect)
+    }
+}
+
+private struct StationBoardScreen: View {
+    @State var viewModel: StationBoardViewModel
+
+    var body: some View {
+        StationBoardView(viewModel: viewModel)
     }
 }
 

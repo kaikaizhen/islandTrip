@@ -5,6 +5,7 @@ struct HomeView: View {
     @Bindable var viewModel: HomeViewModel
     let onSearchBuses: (_ origin: Place, _ destination: Place) -> Void
     let onOpenSettings: () -> Void
+    let onOpenStations: (_ origin: Place) -> Void
 
     @FocusState private var isQueryFocused: Bool
     @State private var originSearch: PlaceSearchModel?
@@ -21,6 +22,7 @@ struct HomeView: View {
                             .id("suggestions")
                     }
                     favoriteGrid
+                    stationsButton
                     if let message = viewModel.errorMessage {
                         SafetyNote(text: message)
                     }
@@ -186,6 +188,18 @@ struct HomeView: View {
             }
         }
         .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: Theme.cornerRadius, style: .continuous))
+    }
+
+    /// 次要入口：附近的臺鐵、高鐵、捷運車站與即將發車。
+    private var stationsButton: some View {
+        Button {
+            if let origin = viewModel.origin { onOpenStations(origin) }
+        } label: {
+            Label("附近車站（捷運、臺鐵、高鐵）", systemImage: "tram.fill")
+        }
+        .buttonStyle(.secondary)
+        .disabled(viewModel.origin == nil)
+        .accessibilityIdentifier("nearbyStations")
     }
 
     private var favoriteGrid: some View {
