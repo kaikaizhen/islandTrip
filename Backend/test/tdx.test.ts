@@ -72,7 +72,7 @@ describe('TdxClient', () => {
     const sleep = vi.fn(async () => undefined);
     const fetch = vi.fn().mockResolvedValueOnce(json({}, 429)).mockResolvedValueOnce(json(['ok']));
     expect(await new TdxClient({ tokens: tokens(), fetch, sleep }).get('/x')).toEqual(['ok']);
-    expect(sleep).toHaveBeenCalledWith(500);
+    expect(sleep).toHaveBeenCalledWith(1000);
   });
 
   it('throws TdxError with only path and status', async () => {
@@ -81,5 +81,49 @@ describe('TdxClient', () => {
     expect(error).toBeInstanceOf(TdxError);
     expect(error.status).toBe(404);
     expect(error.message).not.toContain('secret-place');
+  });
+});
+
+describe('TdxClient rate limiting', () => {
+  const tokens = () => ({ token: vi.fn(async () => 'tok'), invalidate: vi.fn() });
+
+  it('never runs more than maxConcurrent requests at once', async () => {
+    let inFlight = 0;
+    let peak = 0;
+    const fetch = vi.fn(async () => {
+      inFlight += 1;
+      peak = Math.max(peak, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      inFlight -= 1;
+      return json([]);
+    });
+    const client = new TdxClient({ tokens: tokens(), fetch, maxConcurrent: 2, minIntervalMs: 0 });
+    await Promise.all(Array.from({ length: 8 }, (_, i) => client.get(`/x/${i}`)));
+    expect(fetch).toHaveBeenCalledTimes(8);
+    expect(peak).toBe(2);
+  });
+
+  it('spaces request starts by minIntervalMs', async () => {
+    let now = 0;
+    const waits: number[] = [];
+    const sleep = vi.fn(async (ms: number) => {
+      waits.push(ms);
+      now += ms;
+    });
+    const client = new TdxClient({ tokens: tokens(), fetch: async () => json([]), sleep, now: () => now, maxConcurrent: 1, minIntervalMs: 300 });
+    await client.get('/a');
+    await client.get('/b');
+    await client.get('/c');
+    expect(waits).toEqual([300, 300]);
+  });
+
+  it('honours Retry-After on 429', async () => {
+    const sleep = vi.fn(async () => undefined);
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(new Response('{}', { status: 429, headers: { 'retry-after': '3' } }))
+      .mockResolvedValueOnce(json(['ok']));
+    expect(await new TdxClient({ tokens: tokens(), fetch, sleep, minIntervalMs: 0 }).get('/x')).toEqual(['ok']);
+    expect(sleep).toHaveBeenCalledWith(3000);
   });
 });

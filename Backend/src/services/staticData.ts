@@ -156,11 +156,10 @@ export class StaticDataStore {
   }
 
   private async download(city: City): Promise<CachedRaw> {
-    const [stops, stopOfRoutes, routes] = await Promise.all([
-      this.api.get(`/v2/Bus/Stop/City/${city}`),
-      this.api.get(`/v2/Bus/StopOfRoute/City/${city}`),
-      this.api.get(`/v2/Bus/Route/City/${city}`),
-    ]);
+    // 依序下載；請求頻率由 TdxClient 統一控制。
+    const stops = await this.api.get(`/v2/Bus/Stop/City/${city}`);
+    const stopOfRoutes = await this.api.get(`/v2/Bus/StopOfRoute/City/${city}`);
+    const routes = await this.api.get(`/v2/Bus/Route/City/${city}`);
     const raw: CachedRaw = { savedAt: this.now(), stops, stopOfRoutes, routes };
     await this.writeCache(city, raw);
     return raw;

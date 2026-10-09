@@ -50,8 +50,16 @@ export class RailStationStore {
   }
 
   async all(): Promise<RailStationRecord[]> {
-    const results = await Promise.allSettled(this.systems.map((system) => this.load(system)));
-    return results.flatMap((result) => (result.status === 'fulfilled' ? result.value : []));
+    // 依序載入：首次啟動要下載七個系統，同時送出容易被 TDX 限流。
+    const records: RailStationRecord[] = [];
+    for (const system of this.systems) {
+      try {
+        records.push(...(await this.load(system)));
+      } catch {
+        // 單一系統失敗不影響其他系統；下次查詢會再試。
+      }
+    }
+    return records;
   }
 
   async find(system: RailSystem, stationID: string): Promise<RailStationRecord | undefined> {

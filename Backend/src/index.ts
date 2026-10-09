@@ -32,15 +32,21 @@ if (config.mqtt) {
 }
 
 // 啟動時先在背景載入各縣市靜態資料，之後每天更新一次。
-const warmUp = () =>
-  Promise.allSettled(config.CITIES.map((city) => staticData.get(city))).then((results) => {
-    results.forEach((result, index) => {
+// 依序下載（不同時送出），避免觸發 TDX 的頻率限制（HTTP 429）。
+const warmUp = async () => {
+  let ready = 0;
+  for (const city of config.CITIES) {
+    try {
+      await staticData.get(city);
+      ready += 1;
+    } catch (error) {
       // 錯誤訊息只含路徑與 HTTP 狀態，不含密鑰。
-      if (result.status === 'rejected') log(`static data for ${config.CITIES[index]} failed: ${String(result.reason?.message ?? result.reason)}`);
-    });
-    const failed = results.filter((result) => result.status === 'rejected').length;
-    log(`static data ready (${results.length - failed}/${results.length} cities)`);
-  }).then(() => railStations.all()).then((stations) => log(`rail stations ready (${stations.length})`));
+      log(`static data for ${city} failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  log(`static data ready (${ready}/${config.CITIES.length} cities)`);
+  log(`rail stations ready (${(await railStations.all()).length})`);
+};
 void warmUp();
 setInterval(() => void warmUp(), 24 * 60 * 60 * 1000).unref();
 
