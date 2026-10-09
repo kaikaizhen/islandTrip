@@ -4,8 +4,10 @@ import SwiftUI
 struct BoardingOptionsView: View {
     @Bindable var viewModel: BoardingOptionsViewModel
     let onStart: (_ journey: Journey, _ alternatives: [Journey]) -> Void
+    let makePreview: (RankedJourney) -> RoutePreviewViewModel
 
     @State private var showsOthers = false
+    @State private var preview: RoutePreviewViewModel?
 
     var body: some View {
         ScrollView {
@@ -17,6 +19,11 @@ struct BoardingOptionsView: View {
                     Spacer()
                     SimulatedBadge()
                 }
+                // 目的地可能是真實地點，但班次仍是固定的模擬資料，必須說清楚。
+                Label("班次與站牌是模擬資料，尚未依這個目的地計算。", systemImage: "info.circle")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
                 content
             }
             .padding(Theme.spacing)
@@ -24,9 +31,17 @@ struct BoardingOptionsView: View {
         .navigationTitle("推薦班次")
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await viewModel.load() }
-        .bottomAction(viewModel.startTitle, systemImage: "location.fill", isEnabled: viewModel.selected != nil) {
+        .bottomAction(viewModel.startTitle, systemImage: "location.fill", isEnabled: viewModel.selected != nil,
+                      secondary: viewModel.selected.map { selected in
+                          ("在地圖上確認", { preview = makePreview(selected) })
+                      }) {
             guard let selected = viewModel.selected else { return }
             onStart(selected.journey, viewModel.alternatives(for: selected))
+        }
+        .sheet(item: $preview) { preview in
+            RoutePreviewView(viewModel: preview) {
+                viewModel.select(preview.ranked)
+            }
         }
         .task { await viewModel.load() }
         .task {

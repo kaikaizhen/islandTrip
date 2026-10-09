@@ -9,8 +9,9 @@ final class MockJourneyFlowUITests: XCTestCase {
     @MainActor
     func testCompleteJourneyWithMockData() throws {
         let app = XCUIApplication()
+        app.launchArguments = ["-mockPlaceSearch", "-mockWalking"]
         app.launch()
-        // 推薦班次畫面在全螢幕導航底下仍存在，所以每次都找目前看得到的主要按鈕。
+        // 推薦班次畫面在全螢幕導航底下仍存在，所以每次都找目前看得到的那個按鈕。
         let primary = app.buttons.matching(identifier: "primaryAction")
 
         // 首頁：搜尋並選目的地
@@ -18,7 +19,7 @@ final class MockJourneyFlowUITests: XCTestCase {
         let field = app.textFields["destinationField"]
         field.tap()
         field.typeText("台北")
-        tapWhenHittable(app.buttons["台北車站"])
+        tapWhenHittable(app.buttons["suggestion-台北車站"])
         attachScreenshot("1-home")
         tapVisible(primary)
 
@@ -31,7 +32,13 @@ final class MockJourneyFlowUITests: XCTestCase {
         // 步行到站：3 步
         XCTAssertTrue(app.staticTexts["currentInstruction"].waitForExistence(timeout: 5))
         attachScreenshot("3-walking")
-        for _ in 0..<3 { tapVisible(primary) }
+        tapVisible(primary)
+
+        // 第 2 步要右轉：回答「我在左邊」→ 應提示先在路口過馬路，並顯示路口示意圖
+        tapWhenHittable(app.buttons["side-left"])
+        XCTAssertTrue(app.buttons["resetSide"].waitForExistence(timeout: 5))
+        attachScreenshot("3b-cross-first")
+        for _ in 0..<2 { tapVisible(primary) }
 
         // 確認上車側
         XCTAssertTrue(app.staticTexts["請到對面站牌搭車"].waitForExistence(timeout: 5))
@@ -44,7 +51,7 @@ final class MockJourneyFlowUITests: XCTestCase {
         tapVisible(primary)
 
         // 搭乘中：模擬前進一站後出現「準備下車」
-        tapWhenHittable(app.buttons["secondaryAction"])
+        tapVisible(app.buttons.matching(identifier: "secondaryAction"))
         XCTAssertTrue(app.descendants(matching: .any)["approachingAlight"].waitForExistence(timeout: 5))
         attachScreenshot("6-on-vehicle")
         tapVisible(primary)
@@ -77,7 +84,7 @@ final class MockJourneyFlowUITests: XCTestCase {
             }
             RunLoop.current.run(until: Date().addingTimeInterval(0.2))
         }
-        XCTFail("等不到可點擊的主要按鈕", file: file, line: line)
+        XCTFail("等不到可點擊的按鈕", file: file, line: line)
     }
 
     @MainActor

@@ -23,10 +23,20 @@ struct RootView: View {
                 case .options(let origin, let destination):
                     BoardingOptionsScreen(
                         viewModel: dependencies.makeBoardingOptionsViewModel(origin: origin, destination: destination),
-                        onStart: router.startNavigation
+                        onStart: { journey, alternatives in
+                            router.startNavigation(journey: journey, alternatives: alternatives,
+                                                   tracksLocation: dependencies.settings.locationSource == .gps)
+                        },
+                        makePreview: dependencies.makeRoutePreviewViewModel
                     )
                 case .settings:
-                    SettingsView(makeCapabilityTestViewModel: dependencies.makeCapabilityTestViewModel)
+                    SettingsView(settings: dependencies.settings,
+                                 makeCapabilityTestViewModel: dependencies.makeCapabilityTestViewModel,
+                                 onOpenWalkTest: router.showWalkTest)
+                case .walkTest:
+                    WalkTestScreen(viewModel: dependencies.makeWalkTestViewModel()) { journey in
+                        router.startNavigation(journey: journey, alternatives: [], tracksLocation: true)
+                    }
                 }
             }
         }
@@ -43,9 +53,19 @@ struct RootView: View {
 private struct BoardingOptionsScreen: View {
     @State var viewModel: BoardingOptionsViewModel
     let onStart: (Journey, [Journey]) -> Void
+    let makePreview: (RankedJourney) -> RoutePreviewViewModel
 
     var body: some View {
-        BoardingOptionsView(viewModel: viewModel, onStart: onStart)
+        BoardingOptionsView(viewModel: viewModel, onStart: onStart, makePreview: makePreview)
+    }
+}
+
+private struct WalkTestScreen: View {
+    @State var viewModel: WalkTestViewModel
+    let onStart: (Journey) -> Void
+
+    var body: some View {
+        WalkTestView(viewModel: viewModel, onStart: onStart)
     }
 }
 

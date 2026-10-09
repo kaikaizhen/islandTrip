@@ -27,7 +27,7 @@ struct MockTransportProvider: TransportProvider, PlaceSearching, FavoritePlacesP
         return details
     }
 
-    func searchPlaces(_ query: String) async throws -> [Place] {
+    func searchPlaces(_ query: String, near: Coordinate?) async throws -> [Place] {
         let trimmed = query.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return [] }
         return MockTransitFixture.searchablePlaces.filter { $0.name.localizedCaseInsensitiveContains(trimmed) }

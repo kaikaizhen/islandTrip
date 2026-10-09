@@ -23,6 +23,8 @@ final class BoardingOptionsViewModel {
 
     private var journeys: [Journey] = []
     private let transport: any TransportProvider
+    /// nil 時沿用資料來源提供的步行段（測試用）。
+    private let walkPlanner: (any JourneyWalkPlanning)?
     private let ranking: TransitRankingService
     private let now: () -> Date
 
@@ -30,12 +32,14 @@ final class BoardingOptionsViewModel {
         origin: Place,
         destination: Place,
         transport: any TransportProvider,
+        walkPlanner: (any JourneyWalkPlanning)? = nil,
         ranking: TransitRankingService = TransitRankingService(),
         now: @escaping () -> Date = Date.init
     ) {
         self.origin = origin
         self.destination = destination
         self.transport = transport
+        self.walkPlanner = walkPlanner
         self.ranking = ranking
         self.now = now
     }
@@ -54,7 +58,9 @@ final class BoardingOptionsViewModel {
     func load() async {
         state = .loading
         do {
-            journeys = try await transport.findJourneys(from: origin, to: destination)
+            let candidates = try await transport.findJourneys(from: origin, to: destination)
+            // 步行時間會影響「趕不趕得上」，所以先換成真實步行路線再排序。
+            journeys = await walkPlanner?.plan(candidates) ?? candidates
             rerank()
             state = .loaded
         } catch {

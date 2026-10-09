@@ -18,7 +18,10 @@ struct NavigationSessionView: View {
                             .accessibilityLabel("結束導航")
                     }
                     ToolbarItem(placement: .topBarTrailing) {
-                        SimulatedBadge()
+                        // 只有含公車段（目前是模擬班次）時才標示；純步行用的是真實 GPS 與地圖。
+                        if !viewModel.journey.isWalkOnly {
+                            SimulatedBadge()
+                        }
                     }
                 }
                 .confirmationDialog("要結束導航嗎？", isPresented: $confirmsCancel, titleVisibility: .visible) {
@@ -26,6 +29,9 @@ struct NavigationSessionView: View {
                     Button("繼續導航", role: .cancel) {}
                 }
         }
+        // 全螢幕導航要有不透明背景，否則底下頁面的標題會從透明導覽列透出來。
+        .background(Color(.systemBackground).ignoresSafeArea())
+        .presentationBackground(Color(.systemBackground))
         .task { await viewModel.start() }
         .onChange(of: viewModel.isFinished) { _, finished in
             if finished { onFinish() }
@@ -35,7 +41,7 @@ struct NavigationSessionView: View {
     private var title: String {
         switch viewModel.phase {
         case .idle: ""
-        case .walkingToStop: "走到站牌"
+        case .walkingToStop: viewModel.journey.isWalkOnly ? "步行導航" : "走到站牌"
         case .checkingBoardingSide: "確認上車側"
         case .waitingAtStop: "候車"
         case .onVehicle: "搭乘中"
@@ -70,7 +76,15 @@ struct NavigationSessionView: View {
     @ViewBuilder
     private var walkingContent: some View {
         if let instruction = viewModel.currentInstruction {
-            WalkingStepView(instruction: instruction, progress: viewModel.stepProgress, nextStep: viewModel.nextStepText)
+            WalkingStepView(
+                instruction: instruction, progress: viewModel.stepProgress, nextStep: viewModel.nextStepText,
+                liveRemainingMeters: viewModel.liveRemainingMeters, gpsStatus: gpsStatus,
+                isRerouting: viewModel.isRerouting,
+                onReroute: viewModel.canReroute ? { Task { await viewModel.reroute() } } : nil,
+                onRelocate: { viewModel.relocate() },
+                turnAdvice: viewModel.turnAdvice,
+                onSelectSide: { viewModel.setWalkingSide($0) }
+            )
                 .bottomAction(viewModel.walkingPrimaryTitle, systemImage: "arrow.right", secondary: backAction) {
                     viewModel.nextStep()
                 }
@@ -80,7 +94,9 @@ struct NavigationSessionView: View {
     @ViewBuilder
     private var boardingSideContent: some View {
         if let bus = viewModel.bus {
-            BoardingSideView(bus: bus, details: viewModel.stopDetails)
+            BoardingSideView(bus: bus, details: viewModel.stopDetails, resolution: viewModel.boardingResolution) { answer in
+                viewModel.answerBoardingSide(answer)
+            }
                 .bottomAction("我在正確的站牌了", systemImage: "checkmark", secondary: backAction) {
                     Task { await viewModel.confirmBoardingSide() }
                 }
@@ -124,6 +140,14 @@ struct NavigationSessionView: View {
             .bottomAction("結束導航", systemImage: "flag.checkered") {
                 viewModel.cancel()
             }
+    }
+
+    private var gpsStatus: WalkGPSStatus {
+        if let problem = viewModel.locationProblem { return .unavailable(problem) }
+        guard viewModel.isTrackingGPS else { return .manual }
+        if viewModel.isOffRoute { return .offRoute }
+        if viewModel.isLowAccuracy { return .lowAccuracy }
+        return .tracking
     }
 
     private var boardTitle: String {

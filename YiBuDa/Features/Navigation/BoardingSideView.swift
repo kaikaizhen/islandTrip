@@ -1,10 +1,12 @@
 import SwiftUI
 
 /// 確認上車側（草圖 C）：簡化的道路兩側示意，標出你在這裡、正確站牌與搭乘方向。
-/// 資料不足以判定時只顯示文字提示，不畫可能錯誤的示意圖。
+/// 依序採用：使用者的回答 → 穩定的 GPS 判斷 → 站牌資料；都沒有就問使用者，不硬猜。
 struct BoardingSideView: View {
     let bus: BusLeg
     let details: StopDetails?
+    let resolution: BoardingSideResolution
+    let onAnswer: (BoardingSideAnswer?) -> Void
 
     var body: some View {
         ScrollView {
@@ -18,14 +20,26 @@ struct BoardingSideView: View {
                 }
                 .accessibilityElement(children: .combine)
 
-                switch details?.side {
-                case .confirmed(let needsToCross, let guidance):
+                switch resolution {
+                case .known(let needsToCross, let source):
                     RoadSideDiagram(correctStop: bus.boardingStop, oppositeStop: details?.oppositeStop,
                                     direction: bus.option.direction, needsToCross: needsToCross)
-                    SafetyNote(text: guidance)
-                        .card()
-                case .unknown, nil:
-                    unknownSide
+                    VStack(alignment: .leading, spacing: 8) {
+                        SafetyNote(text: guidance(needsToCross: needsToCross, source: source))
+                        Label(sourceText(source), systemImage: "info.circle")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                        if source != .stopData {
+                            Button("不對？重新回答") { onAnswer(nil) }
+                                .font(.headline)
+                                .frame(minHeight: 44)
+                        }
+                    }
+                    .card()
+                case .ask(let reason):
+                    question(reason: reason)
+                case .cannotTell:
+                    signGuide
                 }
             }
             .padding(Theme.spacing)
@@ -33,15 +47,60 @@ struct BoardingSideView: View {
     }
 
     private var headline: String {
-        if case .confirmed(needsToCross: true, _) = details?.side {
-            return "請到對面站牌搭車"
+        switch resolution {
+        case .known(needsToCross: true, _): "請到對面站牌搭車"
+        case .known(needsToCross: false, _): "就在這一側搭車"
+        default: "確認站牌方向"
         }
-        return "確認站牌方向"
     }
 
-    private var unknownSide: some View {
+    private func guidance(needsToCross: Bool, source: BoardingSideResolution.Source) -> String {
+        if source == .stopData, case .confirmed(_, let text) = details?.side { return text }
+        return needsToCross
+            ? "請到路口或斑馬線過馬路，再到對面站牌搭車。不要直接穿越車道。"
+            : "站牌在你這一側，確認站牌上有「\(bus.option.routeName)」就可以等車。"
+    }
+
+    private func sourceText(_ source: BoardingSideResolution.Source) -> String {
+        switch source {
+        case .gps(let accuracy): "依 GPS 判斷（誤差約 \(accuracy) 公尺）"
+        case .manual: "依你的回答"
+        case .stopData: "依站牌資料"
+        }
+    }
+
+    /// 問使用者看得到的事：旁邊這一側的站牌寫哪個方向。
+    private func question(reason: String?) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            SafetyNote(text: "無法確認站牌在馬路哪一側，請查看站牌上的站名與行駛方向。")
+            if let reason {
+                Label(reason, systemImage: "location.slash")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            Text("你旁邊這一側的站牌，寫的是哪個方向？")
+                .font(.title2.bold())
+                .fixedSize(horizontal: false, vertical: true)
+            Button { onAnswer(.nearbyIsCorrect) } label: {
+                Text(bus.boardingStop.directionDescription)
+            }
+            .buttonStyle(.secondary)
+            .accessibilityIdentifier("answer-correct")
+            Button { onAnswer(.nearbyIsOpposite) } label: {
+                Text(details?.oppositeStop?.directionDescription ?? "別的方向")
+            }
+            .buttonStyle(.secondary)
+            .accessibilityIdentifier("answer-opposite")
+            Button { onAnswer(.cannotSeeSign) } label: {
+                Text("看不到站牌")
+            }
+            .buttonStyle(.secondary)
+        }
+        .card()
+    }
+
+    private var signGuide: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SafetyNote(text: "無法確認站牌在馬路哪一側，請找到站牌，查看站名與行駛方向。")
             Divider()
             Label("\(bus.boardingStop.name)", systemImage: "signpost.right.fill")
                 .font(.title.bold())
@@ -50,6 +109,9 @@ struct BoardingSideView: View {
             Text("站牌上要有「\(bus.option.routeName)」，方向是「\(bus.option.direction)」才對。")
                 .font(.title3)
                 .fixedSize(horizontal: false, vertical: true)
+            Button("看到站牌了，重新回答") { onAnswer(nil) }
+                .font(.headline)
+                .frame(minHeight: 44)
         }
         .card()
     }

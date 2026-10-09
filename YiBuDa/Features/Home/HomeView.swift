@@ -7,6 +7,7 @@ struct HomeView: View {
     let onOpenSettings: () -> Void
 
     @FocusState private var isQueryFocused: Bool
+    @State private var originSearch: PlaceSearchModel?
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -50,7 +51,8 @@ struct HomeView: View {
         }
         .task { await viewModel.load() }
         .task(id: viewModel.query) {
-            try? await Task.sleep(for: .milliseconds(250))
+            // 打字停頓後才搜尋，避免每個字都向 Apple 地圖發出請求。
+            try? await Task.sleep(for: .milliseconds(400))
             guard !Task.isCancelled else { return }
             await viewModel.search()
         }
@@ -68,10 +70,55 @@ struct HomeView: View {
     }
 
     private var originRow: some View {
-        Label(viewModel.origin?.name ?? "正在取得目前位置…", systemImage: "location.fill")
-            .font(.title3)
-            .foregroundStyle(.secondary)
-            .accessibilityLabel("出發地：\(viewModel.origin?.name ?? "正在取得目前位置")")
+        VStack(alignment: .leading, spacing: 8) {
+            Button {
+                originSearch = viewModel.makeOriginSearch()
+            } label: {
+                HStack {
+                    Label {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("從：\(originTitle)")
+                                .font(.title3.weight(.semibold))
+                            if let subtitle = viewModel.origin?.subtitle {
+                                Text(subtitle)
+                                    .font(.subheadline)
+                            }
+                        }
+                    } icon: {
+                        Image(systemName: viewModel.isUsingManualOrigin ? "mappin" : "location.fill")
+                            .foregroundStyle(Theme.accent)
+                    }
+                    Spacer(minLength: 8)
+                    Text("更改")
+                        .font(.headline)
+                        .foregroundStyle(Theme.accent)
+                }
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("出發地：\(originTitle)，點兩下更改")
+            .accessibilityIdentifier("originButton")
+
+            if let problem = viewModel.originProblem {
+                SafetyNote(text: problem)
+            }
+        }
+        .sheet(item: $originSearch) { search in
+            PlacePickerView(
+                title: "出發地",
+                search: search,
+                near: viewModel.origin?.coordinate,
+                currentLocationAction: { Task { await viewModel.useCurrentLocation() } }
+            ) { place in
+                viewModel.setManualOrigin(place)
+            }
+        }
+    }
+
+    private var originTitle: String {
+        if let origin = viewModel.origin { return origin.name }
+        return viewModel.isLocating ? "正在取得目前位置…" : "尚未取得位置"
     }
 
     private var destinationCard: some View {
@@ -111,13 +158,28 @@ struct HomeView: View {
                     viewModel.select(place)
                     isQueryFocused = false
                 } label: {
-                    Label(place.name, systemImage: place.symbolName)
-                        .font(.title3.weight(.semibold))
-                        .frame(maxWidth: .infinity, minHeight: Theme.minimumButtonHeight, alignment: .leading)
-                        .padding(.horizontal, Theme.spacing)
-                        .contentShape(Rectangle())
+                    Label {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(place.name)
+                                .font(.title3.weight(.semibold))
+                            if let subtitle = place.subtitle {
+                                Text(subtitle)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .multilineTextAlignment(.leading)
+                    } icon: {
+                        Image(systemName: place.symbolName)
+                            .foregroundStyle(Theme.accent)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: Theme.minimumButtonHeight, alignment: .leading)
+                    .padding(.horizontal, Theme.spacing)
+                    .padding(.vertical, 6)
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("suggestion-\(place.name)")
                 if place.id != viewModel.suggestions.last?.id {
                     Divider()
                 }
