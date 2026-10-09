@@ -26,7 +26,8 @@ const railStations = new RailStationStore(api, RAIL_SYSTEMS, { dataDir: config.D
 const railDepartures = new RailDepartureService(api);
 const railAlerts = new RailAlertService(api);
 // MaaS 旅運規劃：不同基底網址、不是 OData，共用同一組 token
-const maas = new TdxClient({ tokens, baseUrl: 'https://tdx.transportdata.tw/api/maas', odataFormat: false, timeoutMs: 30_000 });
+// 真實測試：MaaS 偶爾要 40 秒以上才回應；單次 25 秒、只重試 1 次，避免 App 等太久
+const maas = new TdxClient({ tokens, baseUrl: 'https://tdx.transportdata.tw/api/maas', odataFormat: false, timeoutMs: 25_000, maxRetries: 1 });
 const planner = new MaasPlanner(maas, staticData, arrivals, config.CITIES);
 
 if (config.mqtt) {

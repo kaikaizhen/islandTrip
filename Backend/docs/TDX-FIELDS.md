@@ -131,3 +131,5 @@
 - `transport`（`transit` 段）：`mode`（觀察到 `Bus`、`MRT`、`TRA`）、`category`、`name`（路線，例：小26、淡水信義線、基隆-北湖）、`headsign`（往○○）、`shortName`、`longName`、`route_color`、`number`（觀察為空字串）、`type`、`city`（觀察為空字串）、`fare`／`fareTW`
 - **時間都是表定／預估，沒有即時資訊；沒有 TDX StopUID／StationID**，只能用路線名稱＋站名＋座標對回 TDX 資料
 - 呼叫時必須帶 `first_mile_mode=0&last_mile_mode=0`（只步行），並以 `first_mile_time`／`last_mile_time` 限制步行分鐘
+- **MaaS 的路網與 TDX 公車 API 不完全一致**（2026-10-10 實測）：高雄車站→駁二的 MaaS 方案出現公車「248」，但 TDX `Bus/Route/City/Kaohsiung` 與 `Bus/Route/InterCity` 都查無此路線（RouteName、RouteUID 皆無）；起訖站牌名稱與座標則與 TDX 一致。這類路段無法對上即時資料，一律標「表定」，不可用相近路線硬配
+- 回應時間：實測 2～40 秒不等，後端單次逾時 25 秒、只重試 1 次
