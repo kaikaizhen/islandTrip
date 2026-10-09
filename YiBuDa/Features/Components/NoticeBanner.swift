@@ -2,7 +2,7 @@ import SwiftUI
 
 /// 狀態或警告提示。以圖示 + 文字表達，不只依賴顏色區分。
 struct NoticeBanner: View {
-    let notice: HomeViewModel.Notice
+    let notice: CapabilityTestViewModel.Notice
 
     var body: some View {
         Label {

@@ -1,44 +1,58 @@
 import SwiftUI
 
-/// Phase 0 首頁：開始模擬導航，驗證動態島、鎖定畫面與本機通知。
+/// 首頁（草圖 A）：目前位置、目的地輸入、常用地點、超大「開始找車」。
 struct HomeView: View {
     @Bindable var viewModel: HomeViewModel
+    let onSearchBuses: (_ origin: Place, _ destination: Place) -> Void
+    let onOpenSettings: () -> Void
+
+    @FocusState private var isQueryFocused: Bool
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: Theme.spacing) {
-                header
-
-                if let step = viewModel.currentStep {
-                    InstructionCard(step: step)
-                    Button("結束模擬") { Task { await viewModel.stop() } }
-                        .buttonStyle(.secondary)
-                } else {
-                    introCard
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: Theme.spacing) {
+                    header
+                    originRow
+                    destinationCard
+                    if !viewModel.suggestions.isEmpty {
+                        suggestionList
+                            .id("suggestions")
+                    }
+                    favoriteGrid
+                    if let message = viewModel.errorMessage {
+                        SafetyNote(text: message)
+                    }
                 }
-
-                if let notice = viewModel.notice {
-                    NoticeBanner(notice: notice)
-                }
-
-                Button {
-                    Task { await viewModel.sendTestNotification() }
-                } label: {
-                    Label("傳送測試通知", systemImage: "bell")
-                }
-                .buttonStyle(.secondary)
+                .padding(Theme.spacing)
             }
-            .padding(Theme.spacing)
+            .onChange(of: viewModel.suggestions) { _, suggestions in
+                // 字體放大時建議清單容易被鍵盤擋住，出現時捲到可見處。
+                guard !suggestions.isEmpty else { return }
+                withAnimation { proxy.scrollTo("suggestions", anchor: .bottom) }
+            }
         }
-        .safeAreaInset(edge: .bottom) {
-            Button {
-                Task { await viewModel.performPrimaryAction() }
-            } label: {
-                Label(viewModel.primaryActionTitle, systemImage: viewModel.isRunning ? "arrow.right" : "location.fill")
+        .scrollDismissesKeyboard(.interactively)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(action: onOpenSettings) {
+                    Image(systemName: "gearshape")
+                        .font(.title2)
+                }
+                .accessibilityLabel("設定")
             }
-            .buttonStyle(.primary)
-            .padding(Theme.spacing)
-            .background(.bar)
+        }
+        // 輸入目的地時隱藏底部按鈕（此時也還不能按），避免浮在鍵盤上擋住建議清單。
+        .bottomAction("開始找車", systemImage: "bus.fill", isEnabled: viewModel.canSearchBuses,
+                      isVisible: !isQueryFocused) {
+            guard let origin = viewModel.origin, let destination = viewModel.destination else { return }
+            onSearchBuses(origin, destination)
+        }
+        .task { await viewModel.load() }
+        .task(id: viewModel.query) {
+            try? await Task.sleep(for: .milliseconds(250))
+            guard !Task.isCancelled else { return }
+            await viewModel.search()
         }
     }
 
@@ -51,47 +65,90 @@ struct HomeView: View {
                 .font(.title3)
                 .foregroundStyle(.secondary)
         }
-        .padding(.bottom, 8)
     }
 
-    private var introCard: some View {
+    private var originRow: some View {
+        Label(viewModel.origin?.name ?? "正在取得目前位置…", systemImage: "location.fill")
+            .font(.title3)
+            .foregroundStyle(.secondary)
+            .accessibilityLabel("出發地：\(viewModel.origin?.name ?? "正在取得目前位置")")
+    }
+
+    private var destinationCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SimulatedBadge()
-            Label("目的地：\(viewModel.script.destinationName)", systemImage: "mappin.circle.fill")
-                .font(.title2.bold())
-            Text("按下「開始模擬導航」後，動態島與鎖定畫面會顯示模擬指令「120 公尺後右轉」。")
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            Label("目的地", systemImage: "mappin.circle.fill")
+                .font(.headline)
+                .foregroundStyle(Theme.accent)
+            HStack {
+                TextField("要去哪裡？", text: $viewModel.query)
+                    .font(.title.bold())
+                    .focused($isQueryFocused)
+                    .submitLabel(.search)
+                    .accessibilityIdentifier("destinationField")
+                if !viewModel.query.isEmpty {
+                    Button {
+                        viewModel.clearDestination()
+                        isQueryFocused = true
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title2)
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(minWidth: 44, minHeight: 44)
+                    .accessibilityLabel("清除目的地")
+                }
+            }
+            .padding(Theme.spacing)
+            .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: Theme.cornerRadius - 6, style: .continuous))
         }
         .card()
     }
-}
 
-#if DEBUG
-@MainActor
-private final class PreviewLiveActivity: LiveActivityControlling {
-    var areActivitiesEnabled = true
-    var isRunning = false
-    func start(attributes: NavigationActivityAttributes, state: NavigationActivityAttributes.ContentState) throws {}
-    func update(_ state: NavigationActivityAttributes.ContentState) async {}
-    func end(finalState: NavigationActivityAttributes.ContentState?) async {}
-}
+    private var suggestionList: some View {
+        VStack(spacing: 0) {
+            ForEach(viewModel.suggestions) { place in
+                Button {
+                    viewModel.select(place)
+                    isQueryFocused = false
+                } label: {
+                    Label(place.name, systemImage: place.symbolName)
+                        .font(.title3.weight(.semibold))
+                        .frame(maxWidth: .infinity, minHeight: Theme.minimumButtonHeight, alignment: .leading)
+                        .padding(.horizontal, Theme.spacing)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                if place.id != viewModel.suggestions.last?.id {
+                    Divider()
+                }
+            }
+        }
+        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: Theme.cornerRadius, style: .continuous))
+    }
 
-private struct PreviewNotifications: NotificationScheduling {
-    func permission() async -> NotificationPermission { .authorized }
-    func requestPermission() async throws -> Bool { true }
-    func schedule(_ notification: LocalNotification, after delay: TimeInterval) async throws {}
-    func cancelAll() async {}
+    private var favoriteGrid: some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: Theme.spacing)], spacing: Theme.spacing) {
+            ForEach(viewModel.favorites) { place in
+                Button {
+                    viewModel.select(place)
+                    isQueryFocused = false
+                } label: {
+                    VStack(spacing: 8) {
+                        Image(systemName: place.symbolName)
+                            .font(.largeTitle)
+                        Text(place.favoriteTitle)
+                            .font(.title3.weight(.semibold))
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 110)
+                    .foregroundStyle(viewModel.destination?.id == place.id ? Color.white : Color.primary)
+                    .background(
+                        viewModel.destination?.id == place.id ? Theme.accent : Color(.secondarySystemBackground),
+                        in: RoundedRectangle(cornerRadius: Theme.cornerRadius, style: .continuous)
+                    )
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(viewModel.destination?.id == place.id ? .isSelected : [])
+            }
+        }
+    }
 }
-
-#Preview("首頁・明亮") {
-    HomeView(viewModel: HomeViewModel(liveActivity: PreviewLiveActivity(), notifications: PreviewNotifications()))
-        .preferredColorScheme(.light)
-}
-
-#Preview("首頁・暗黑") {
-    HomeView(viewModel: HomeViewModel(liveActivity: PreviewLiveActivity(), notifications: PreviewNotifications()))
-        .preferredColorScheme(.dark)
-}
-#endif
