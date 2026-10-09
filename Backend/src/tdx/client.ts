@@ -26,6 +26,8 @@ export interface TdxClientOptions {
   /** 兩次請求開始之間的最短間隔（毫秒）。 */
   minIntervalMs?: number;
   now?: () => number;
+  /** 是否加上 OData 的 $format=JSON（MaaS 不是 OData，不加）。 */
+  odataFormat?: boolean;
 }
 
 /** TDX REST 用戶端：帶 Bearer token、gzip、逾時、退避重試；401 時重新取 token 再試一次。 */
@@ -71,7 +73,7 @@ export class TdxClient implements TdxApi {
 
   async get(path: string, query: Record<string, string> = {}): Promise<unknown> {
     const url = new URL(this.baseUrl + path);
-    url.searchParams.set('$format', 'JSON');
+    if (this.options.odataFormat !== false) url.searchParams.set('$format', 'JSON');
     for (const [key, value] of Object.entries(query)) url.searchParams.set(key, value);
 
     let refreshedToken = false;

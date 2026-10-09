@@ -36,6 +36,7 @@ npm run build && node --env-file=.env dist/index.js
 |---|---|---|
 | GET | `/health` | 健康檢查（不需金鑰）：MQTT 狀態、各縣市靜態資料載入時間 |
 | GET | `/v1/journeys?originLat&originLon&destinationLat&destinationLon` | 起點／目的地 500 公尺內可直達的公車方案，含路線（`uid`、`id`=RouteID、名稱、方向描述）、上下車站、對面同名站牌、到站預估、搭乘時間 |
+| GET | `/v1/plan?originLat&originLon&destinationLat&destinationLon` | 跨運具方案（TDX MaaS，最多 5 條，只步行轉乘）：每段為 `walk`／`wait`／`transit`；公車段能對回 TDX 站牌（路線名＋站名＋座標＋站序方向）時附 `realtime` 即時到站，其他段為表定時間 |
 | GET | `/v1/stops/nearby?lat&lon&radius` | 附近站牌（50–1000 公尺） |
 | GET | `/v1/arrivals?city&stopUID` | 單一站牌各路線到站預估 |
 | GET | `/v1/alerts?city` | 目前有效的通阻消息 |

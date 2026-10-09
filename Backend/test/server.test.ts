@@ -18,6 +18,7 @@ function makeServer(overrides: Partial<ServerDependencies> = {}) {
     railStations: { nearby: vi.fn(async () => []) },
     railDepartures: { departures: vi.fn(async () => ({ system: 'TRTC', stationID: 'BL12', departures: [], note: null })) },
     railAlerts: { alerts: vi.fn(async () => ({ supported: true, alerts: [] })) },
+    planner: { plan: vi.fn(async () => ({ generatedAt: 'now', routes: [] })) },
     log: (message: string) => logs.push(message),
     ...overrides,
   } as unknown as ServerDependencies;

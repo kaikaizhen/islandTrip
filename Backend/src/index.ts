@@ -4,6 +4,7 @@ import { startAlertSubscriber } from './mqtt/alertSubscriber.js';
 import { AlertStore } from './services/alerts.js';
 import { ArrivalService } from './services/arrivals.js';
 import { JourneyService } from './services/journeys.js';
+import { MaasPlanner } from './services/maasPlanner.js';
 import { RailAlertService } from './services/railAlerts.js';
 import { RailDepartureService } from './services/railDepartures.js';
 import { RailStationStore } from './services/railStations.js';
@@ -24,6 +25,9 @@ const journeys = new JourneyService(staticData, arrivals, { cities: config.CITIE
 const railStations = new RailStationStore(api, RAIL_SYSTEMS, { dataDir: config.DATA_DIR });
 const railDepartures = new RailDepartureService(api);
 const railAlerts = new RailAlertService(api);
+// MaaS 旅運規劃：不同基底網址、不是 OData，共用同一組 token
+const maas = new TdxClient({ tokens, baseUrl: 'https://tdx.transportdata.tw/api/maas', odataFormat: false, timeoutMs: 30_000 });
+const planner = new MaasPlanner(maas, staticData, arrivals, config.CITIES);
 
 if (config.mqtt) {
   startAlertSubscriber({ ...config.mqtt, cities: config.CITIES, store: alerts, log });
@@ -51,7 +55,7 @@ void warmUp();
 setInterval(() => void warmUp(), 24 * 60 * 60 * 1000).unref();
 
 const server = buildServer({
-  appApiKey: config.APP_API_KEY, journeys, arrivals, alerts, staticData, railStations, railDepartures, railAlerts, log,
+  appApiKey: config.APP_API_KEY, journeys, arrivals, alerts, staticData, railStations, railDepartures, railAlerts, planner, log,
 });
 await server.listen({ host: '0.0.0.0', port: config.PORT });
 log(`listening on ${config.PORT}`);

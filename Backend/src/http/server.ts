@@ -6,6 +6,7 @@ import { RAIL_SYSTEMS } from '../domain/railSystems.js';
 import type { AlertStore } from '../services/alerts.js';
 import type { ArrivalService } from '../services/arrivals.js';
 import type { JourneyService } from '../services/journeys.js';
+import type { MaasPlanner } from '../services/maasPlanner.js';
 import type { RailAlertService } from '../services/railAlerts.js';
 import type { RailDepartureService } from '../services/railDepartures.js';
 import type { RailStationStore } from '../services/railStations.js';
@@ -20,6 +21,7 @@ export interface ServerDependencies {
   railStations: RailStationStore;
   railDepartures: RailDepartureService;
   railAlerts: RailAlertService;
+  planner: MaasPlanner;
   /** 每個 IP 每分鐘最多幾次請求。 */
   rateLimitPerMinute?: number;
   now?: () => number;
@@ -100,6 +102,12 @@ export function buildServer(deps: ServerDependencies): FastifyInstance {
   app.get('/v1/alerts', async (request) => {
     const q = cityQuery.parse(request.query);
     return { alerts: await deps.alerts.active(q.city), mqttConnected: deps.alerts.mqttConnected };
+  });
+
+  // 跨運具方案（MaaS；公車段盡量補上即時到站）
+  app.get('/v1/plan', async (request) => {
+    const q = journeyQuery.parse(request.query);
+    return deps.planner.plan({ lat: q.originLat, lon: q.originLon }, { lat: q.destinationLat, lon: q.destinationLon });
   });
 
   // 軌道（臺鐵、高鐵、捷運）
