@@ -3,5 +3,11 @@
 // Apple Developer Team ID（Xcode > Settings > Accounts 可查；免費 Personal Team 也有）
 DEVELOPMENT_TEAM = XXXXXXXXXX
 
-// 注意：TDX Client ID / Secret 絕對不要放在這裡或任何 App 設定中。
-// Phase 3 會由 Cloudflare Workers 保密代理持有，App 只會知道代理網址。
+// 家中 NAS 後端（Backend/）。xcconfig 會把 // 當成註解，網址請寫成 https:/$()/ 的形式。
+// 例：YIBUDA_BACKEND_URL = https:/$()/yibuda.example.com
+//     YIBUDA_BACKEND_URL = http:/$()/192.168.1.20:8080   （只限家中區域網路測試）
+YIBUDA_BACKEND_URL =
+// 與 NAS 上 .env 的 APP_API_KEY 相同（不是 TDX 密鑰）
+YIBUDA_APP_KEY =
+
+// 注意：TDX Client ID / Secret 絕對不要放在這裡或任何 App 設定中，只存在 NAS 的 .env。

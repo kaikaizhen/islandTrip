@@ -139,6 +139,7 @@ describe('journey candidates', () => {
     expect(dto.rideSource).toBe('vehicle');
     expect(dto.rideSeconds).toBe(720);
     expect(dto.route.headsign).toBe('往台北車站');
+    expect(dto.route.id).toBe('265');
     expect(dto.oppositeStop?.uid).toBe('TPE1002');
   });
 

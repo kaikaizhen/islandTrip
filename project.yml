@@ -35,6 +35,12 @@ targets:
         CFBundleDisplayName: 一步搭
         CFBundleDevelopmentRegion: zh-Hant
         NSSupportsLiveActivities: true
+        # 後端位址與 App 金鑰來自 Config/Local.xcconfig；未設定時使用模擬資料
+        YiBuDaBackendURL: $(YIBUDA_BACKEND_URL)
+        YiBuDaAppKey: $(YIBUDA_APP_KEY)
+        # 允許在家中區域網路以 http 連 NAS 測試；對外仍應使用 https
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
         NSLocationWhenInUseUsageDescription: 導航時需要你的位置，用來指引步行方向、確認站牌和提醒下車。行程結束後就會停止使用。
         UIBackgroundModes:
           - location

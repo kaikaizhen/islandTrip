@@ -19,7 +19,8 @@ export interface StopDTO {
 export interface BusCandidateDTO {
   id: string;
   city: City;
-  route: { uid: string; name: string; subRouteUID: string | null; headsign: string };
+  /** id 是 TDX RouteID，通阻消息的影響範圍以它表示。 */
+  route: { uid: string; id: string | null; name: string; subRouteUID: string | null; headsign: string };
   boardingStop: StopDTO;
   alightingStop: StopDTO;
   /** 馬路對面同名、反方向的站牌；找不到時為 null。 */
@@ -120,7 +121,7 @@ export function buildCandidate(
   return {
     id: `${route.routeKey}@${boarding.stop.uid}>${alighting.stop.uid}`,
     city: boarding.stop.city,
-    route: { uid: route.routeUID, name: route.routeName, subRouteUID: route.subRouteUID, headsign: route.headsign },
+    route: { uid: route.routeUID, id: route.routeID, name: route.routeName, subRouteUID: route.subRouteUID, headsign: route.headsign },
     boardingStop: toStopDTO(boarding.stop),
     alightingStop: toStopDTO(alighting.stop),
     oppositeStop: opposite ? toStopDTO(opposite) : null,

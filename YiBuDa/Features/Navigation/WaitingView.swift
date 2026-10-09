@@ -56,7 +56,7 @@ struct WaitingView: View {
                 RouteBadge(routeName: ranked.option?.routeName ?? "", size: .title)
                 Text(ranked.option?.direction ?? "")
                     .font(.headline)
-                Text(TransitFormat.arrival(ranked.arrivalAtDestination))
+                Text(TransitFormat.arrival(ranked.arrivalAtDestination, isEstimated: ranked.option?.rideIsEstimated ?? false))
                     .font(.subheadline)
                 if ranked.isStale {
                     Label("資訊可能過期", systemImage: "exclamationmark.triangle")
@@ -68,7 +68,7 @@ struct WaitingView: View {
                 Spacer(minLength: 8)
             }
             VStack(alignment: dynamicTypeSize.isAccessibilitySize ? .leading : .trailing, spacing: 6) {
-                Text(TransitFormat.busCountdown(ranked.option?.estimatedArrivalAtStop, now: now))
+                Text(TransitFormat.busCountdown(ranked.option?.estimatedArrivalAtStop, now: now, unavailableText: ranked.option?.statusNote))
                     .font(.title2.bold())
                     .multilineTextAlignment(dynamicTypeSize.isAccessibilitySize ? .leading : .trailing)
                 if isSelected {

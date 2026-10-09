@@ -6,6 +6,8 @@ struct BoardingOptionCard: View {
     let now: Date
     var isRecommended = false
     var isSelected = false
+    /// 影響這條路線的異常消息。
+    var alerts: [ServiceAlert] = []
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
@@ -22,7 +24,7 @@ struct BoardingOptionCard: View {
                     Text(bus.option.direction)
                         .font(.title3.weight(.semibold))
                 }
-                Text(TransitFormat.busCountdown(bus.option.estimatedArrivalAtStop, now: now))
+                Text(TransitFormat.busCountdown(bus.option.estimatedArrivalAtStop, now: now, unavailableText: bus.option.statusNote))
                     .font(isRecommended ? .title.bold() : .title2.bold())
                 Text("在 \(bus.boardingStop.name)（\(bus.boardingStop.directionDescription)）上車")
                     .font(.body)
@@ -32,8 +34,13 @@ struct BoardingOptionCard: View {
                 }
                 adaptiveRow {
                     CatchStatusLabel(status: ranked.catchStatus)
-                    Text(TransitFormat.arrival(ranked.arrivalAtDestination))
+                    Text(TransitFormat.arrival(ranked.arrivalAtDestination, isEstimated: bus.option.rideIsEstimated))
                         .font(.headline)
+                }
+                if !alerts.isEmpty {
+                    Label("有異常消息：\(alerts.map(\.title).joined(separator: "、"))", systemImage: "exclamationmark.triangle.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 Label(TransitFormat.updated(bus.option.updatedAt, isStale: ranked.isStale),
                       systemImage: ranked.isStale ? "exclamationmark.triangle" : "clock")

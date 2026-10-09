@@ -16,23 +16,33 @@ struct AppDependencies {
     /// nil 時沿用模擬步行段（UI 測試離線用）。
     let walkPlanner: (any JourneyWalkPlanning)?
     let heading: any HeadingProviding
+    let alerts: (any ServiceAlertProviding)?
+    /// 班次是否為模擬資料（未設定後端，或 UI 測試）。
+    let isMockTransit: Bool
 
     /// UI 測試用的啟動參數：目的地搜尋改用離線模擬資料，讓測試不依賴網路。
     static let mockPlaceSearchArgument = "-mockPlaceSearch"
     /// UI 測試用的啟動參數：步行段沿用模擬資料（步驟數固定），不向 Apple 地圖要路線。
     static let mockWalkingArgument = "-mockWalking"
+    /// UI 測試用的啟動參數：即使設定了後端也使用模擬班次。
+    static let mockTransitArgument = "-mockTransit"
 
-    /// 交通資料目前只有 Mock；Phase 3 加入真實資料來源時在這裡切換。目的地搜尋使用 Apple MapKit。
-    static func live(arguments: [String] = ProcessInfo.processInfo.arguments) -> AppDependencies {
+    /// 有設定 NAS 後端時用 TDX 真實班次，否則用模擬資料。目的地搜尋使用 Apple MapKit。
+    static func live(
+        arguments: [String] = ProcessInfo.processInfo.arguments,
+        info: [String: Any]? = Bundle.main.infoDictionary
+    ) -> AppDependencies {
         let mock = MockTransportProvider()
         let places: any PlaceSearching = arguments.contains(mockPlaceSearchArgument) ? mock : MapKitPlaceSearch()
-        let settings = AppSettings()
+        let backend = arguments.contains(mockTransitArgument) ? nil : BackendConfiguration.from(info: info)
+        let remote = backend.map { RemoteTransportProvider(client: BackendClient(configuration: $0)) }
+        let settings = AppSettings(defaultSource: remote == nil ? .simulated : .gps)
         let location = CoreLocationProvider()
         let walkingRoutes = MapKitWalkingRouteProvider()
         return AppDependencies(
             liveActivity: ActivityKitLiveActivityController(),
             notifications: UserNotificationScheduler(),
-            transport: mock,
+            transport: remote ?? mock,
             places: places,
             favorites: mock,
             currentPlace: SettingsCurrentPlaceProvider(
@@ -43,7 +53,9 @@ struct AppDependencies {
             settings: settings,
             location: location,
             walkPlanner: arguments.contains(mockWalkingArgument) ? nil : WalkingJourneyPlanner(routes: walkingRoutes),
-            heading: CoreLocationHeadingProvider()
+            heading: CoreLocationHeadingProvider(),
+            alerts: remote,
+            isMockTransit: remote == nil
         )
     }
 
@@ -53,7 +65,7 @@ struct AppDependencies {
 
     func makeBoardingOptionsViewModel(origin: Place, destination: Place) -> BoardingOptionsViewModel {
         BoardingOptionsViewModel(origin: origin, destination: destination, transport: transport,
-                                 walkPlanner: walkPlanner, ranking: ranking)
+                                 walkPlanner: walkPlanner, alerts: alerts, ranking: ranking)
     }
 
     func makeNavigationSessionViewModel(_ request: NavigationRequest) -> NavigationSessionViewModel {

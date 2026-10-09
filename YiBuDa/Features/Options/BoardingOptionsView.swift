@@ -7,6 +7,7 @@ struct BoardingOptionsView: View {
     let makePreview: (RankedJourney) -> RoutePreviewViewModel
 
     @State private var showsOthers = false
+    @Environment(\.isMockTransit) private var isMockTransit
     @State private var preview: RoutePreviewViewModel?
 
     var body: some View {
@@ -19,11 +20,14 @@ struct BoardingOptionsView: View {
                     Spacer()
                     SimulatedBadge()
                 }
-                // 目的地可能是真實地點，但班次仍是固定的模擬資料，必須說清楚。
-                Label("班次與站牌是模擬資料，尚未依這個目的地計算。", systemImage: "info.circle")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                if isMockTransit {
+                    // 目的地可能是真實地點，但班次仍是固定的模擬資料，必須說清楚。
+                    Label("班次與站牌是模擬資料，尚未依這個目的地計算。", systemImage: "info.circle")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                alertBanner
                 content
             }
             .padding(Theme.spacing)
@@ -100,12 +104,36 @@ struct BoardingOptionsView: View {
         }
     }
 
+    @ViewBuilder
+    private var alertBanner: some View {
+        if !viewModel.alerts.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(viewModel.alerts) { alert in
+                    VStack(alignment: .leading, spacing: 4) {
+                        SafetyNote(text: alert.title)
+                        if !alert.description.isEmpty {
+                            Text(alert.description)
+                                .font(.body)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+            }
+            .card()
+            .accessibilityIdentifier("serviceAlerts")
+        } else if viewModel.alertsUnavailable {
+            Label("暫時無法取得公車異常消息。", systemImage: "wifi.exclamationmark")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+    }
+
     private func optionButton(_ journey: RankedJourney, now: Date, isRecommended: Bool = false) -> some View {
         Button {
             viewModel.select(journey)
         } label: {
             BoardingOptionCard(ranked: journey, now: now, isRecommended: isRecommended,
-                               isSelected: viewModel.selectedID == journey.id)
+                               isSelected: viewModel.selectedID == journey.id, alerts: viewModel.alerts(for: journey))
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("option-\(journey.option?.routeName ?? journey.id)")

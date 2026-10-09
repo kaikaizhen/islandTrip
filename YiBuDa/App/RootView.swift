@@ -40,11 +40,13 @@ struct RootView: View {
                 }
             }
         }
+        .environment(\.isMockTransit, dependencies.isMockTransit)
         .fullScreenCover(item: $router.navigation) { request in
             NavigationSessionScreen(
                 viewModel: dependencies.makeNavigationSessionViewModel(request),
                 onFinish: router.finishNavigation
             )
+            .environment(\.isMockTransit, dependencies.isMockTransit)
         }
     }
 }
