@@ -83,7 +83,9 @@ struct NavigationSessionView: View {
                 onReroute: viewModel.canReroute ? { Task { await viewModel.reroute() } } : nil,
                 onRelocate: { viewModel.relocate() },
                 turnAdvice: viewModel.turnAdvice,
-                onSelectSide: { viewModel.setWalkingSide($0) }
+                onSelectSide: { viewModel.setWalkingSide($0) },
+                directionGuidance: viewModel.directionGuidance,
+                directionAngle: viewModel.directionRelativeAngle
             )
                 .bottomAction(viewModel.walkingPrimaryTitle, systemImage: "arrow.right", secondary: backAction) {
                     viewModel.nextStep()

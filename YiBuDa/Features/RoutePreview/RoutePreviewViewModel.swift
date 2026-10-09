@@ -45,6 +45,8 @@ final class RoutePreviewViewModel {
     }
 
     let ranked: RankedJourney
+    /// 使用真實位置時才在地圖上顯示「我在哪、手機朝哪」；模擬位置與實際所在地不同，不顯示。
+    let showsLiveLocation: Bool
     private(set) var oppositeStop: Stop?
     private(set) var walkToStop: WalkState = .loading
     private(set) var walkToDestination: WalkState = .loading
@@ -52,8 +54,10 @@ final class RoutePreviewViewModel {
     private let transport: any TransportProvider
     private let routes: any WalkingRouteProviding
 
-    init(ranked: RankedJourney, transport: any TransportProvider, routes: any WalkingRouteProviding) {
+    init(ranked: RankedJourney, transport: any TransportProvider, routes: any WalkingRouteProviding,
+         showsLiveLocation: Bool = false) {
         self.ranked = ranked
+        self.showsLiveLocation = showsLiveLocation
         self.transport = transport
         self.routes = routes
     }
