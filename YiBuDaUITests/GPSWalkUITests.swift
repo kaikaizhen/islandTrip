@@ -57,6 +57,7 @@ final class GPSWalkUITests: XCTestCase {
         print("GPS_WALK_STEPS \(seen)")
     }
 
+    @MainActor
     private func moveTo(latitude: Double, longitude: Double) {
         XCUIDevice.shared.location = XCUILocation(location: CLLocation(latitude: latitude, longitude: longitude))
     }

@@ -22,6 +22,8 @@ struct WalkingStepView: View {
     var onRelocate: (() -> Void)?
     var turnAdvice: TurnSideAdvice = .none
     var onSelectSide: ((WalkSide?) -> Void)?
+    var directionGuidance: DirectionCheck.Guidance?
+    var directionAngle: Double?
 
     @ScaledMetric(relativeTo: .largeTitle) private var arrowSize: CGFloat = 120
 
@@ -30,6 +32,11 @@ struct WalkingStepView: View {
             VStack(alignment: .leading, spacing: Theme.spacing) {
                 if gpsStatus == .offRoute {
                     offRouteBanner
+                }
+
+                // 先對準方向再看指令；對準後縮成一行。
+                if let directionGuidance {
+                    DirectionCheckCard(guidance: directionGuidance, relativeAngle: directionAngle)
                 }
 
                 VStack(spacing: Theme.spacing) {

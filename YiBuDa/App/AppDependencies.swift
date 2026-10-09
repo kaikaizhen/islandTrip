@@ -15,6 +15,7 @@ struct AppDependencies {
     let location: any LocationProviding
     /// nil 時沿用模擬步行段（UI 測試離線用）。
     let walkPlanner: (any JourneyWalkPlanning)?
+    let heading: any HeadingProviding
 
     /// UI 測試用的啟動參數：目的地搜尋改用離線模擬資料，讓測試不依賴網路。
     static let mockPlaceSearchArgument = "-mockPlaceSearch"
@@ -41,7 +42,8 @@ struct AppDependencies {
             walkingRoutes: walkingRoutes,
             settings: settings,
             location: location,
-            walkPlanner: arguments.contains(mockWalkingArgument) ? nil : WalkingJourneyPlanner(routes: walkingRoutes)
+            walkPlanner: arguments.contains(mockWalkingArgument) ? nil : WalkingJourneyPlanner(routes: walkingRoutes),
+            heading: CoreLocationHeadingProvider()
         )
     }
 
@@ -58,15 +60,21 @@ struct AppDependencies {
         let location = location
         let updates: (@Sendable () -> AsyncThrowingStream<LocationSample, Error>)? =
             request.tracksLocation ? { @Sendable in location.liveUpdates() } : nil
+        // 指南針只在使用真實位置時有意義（模擬位置與實際所在地不同）。
+        let heading = heading
+        let headingUpdates: (@MainActor () -> AsyncStream<HeadingSample>)? =
+            request.tracksLocation ? { @MainActor in heading.headingUpdates() } : nil
         return NavigationSessionViewModel(
             journey: request.journey, alternatives: request.alternatives, transport: transport, ranking: ranking,
             locationUpdates: updates,
-            walkPlanner: walkPlanner ?? WalkingJourneyPlanner(routes: walkingRoutes)
+            walkPlanner: walkPlanner ?? WalkingJourneyPlanner(routes: walkingRoutes),
+            headingUpdates: headingUpdates
         )
     }
 
     func makeRoutePreviewViewModel(_ ranked: RankedJourney) -> RoutePreviewViewModel {
-        RoutePreviewViewModel(ranked: ranked, transport: transport, routes: walkingRoutes)
+        RoutePreviewViewModel(ranked: ranked, transport: transport, routes: walkingRoutes,
+                              showsLiveLocation: settings.locationSource == .gps)
     }
 
     /// 步行測試一律用真實 GPS 與 Apple 地圖。

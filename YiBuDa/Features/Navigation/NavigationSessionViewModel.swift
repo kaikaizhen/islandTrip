@@ -32,11 +32,18 @@ final class NavigationSessionViewModel {
     private var lastBoardingEstimate: BoardingSideEstimator.Estimate?
     private var boardingStabilizer = SideEstimateStabilizer()
 
+    /// 「轉到對的方向」：nil 代表目前不提供（不在步行、沒有路徑或沒有指南針）。
+    private(set) var directionGuidance: DirectionCheck.Guidance?
+    private var directionCheck = DirectionCheck()
+    private var headingTask: Task<Void, Never>?
+    private var directionStep: Int?
+
     private var candidates: [Journey]
     private let transport: any TransportProvider
     private let ranking: TransitRankingService
     private let locationUpdates: (@Sendable () -> AsyncThrowingStream<LocationSample, Error>)?
     private let walkPlanner: (any JourneyWalkPlanning)?
+    private let headingUpdates: (@MainActor () -> AsyncStream<HeadingSample>)?
     private let now: () -> Date
 
     init(
@@ -46,6 +53,7 @@ final class NavigationSessionViewModel {
         ranking: TransitRankingService = TransitRankingService(),
         locationUpdates: (@Sendable () -> AsyncThrowingStream<LocationSample, Error>)? = nil,
         walkPlanner: (any JourneyWalkPlanning)? = nil,
+        headingUpdates: (@MainActor () -> AsyncStream<HeadingSample>)? = nil,
         now: @escaping () -> Date = Date.init
     ) {
         self.journey = journey
@@ -55,6 +63,7 @@ final class NavigationSessionViewModel {
         self.ranking = ranking
         self.locationUpdates = locationUpdates
         self.walkPlanner = walkPlanner
+        self.headingUpdates = headingUpdates
         self.now = now
         self.machine = NavigationStateMachine(
             walkToStopSteps: journey.walkToStop?.instructions.count ?? 0,
@@ -298,6 +307,47 @@ final class NavigationSessionViewModel {
             locationTask?.cancel()
             locationTask = nil
         }
+        syncDirectionCheck()
+    }
+
+    // MARK: 方向（指南針）
+
+    /// 目前這一步要走的方向相對手機頂端的角度（度，正值在右）。
+    var directionRelativeAngle: Double? { directionCheck.relativeAngle }
+
+    /// 只在有真實路徑的步行步驟開啟指南針；其他時候關閉以省電。
+    private func syncDirectionCheck() {
+        let shouldRun = headingUpdates != nil && currentInstruction.map { $0.path.count >= 2 } == true
+        guard shouldRun else {
+            headingTask?.cancel()
+            headingTask = nil
+            directionGuidance = nil
+            directionCheck.reset()
+            directionStep = nil
+            return
+        }
+        // 換到新的一步：重新對準。
+        if directionStep != currentStepIndex {
+            directionCheck.reset()
+            directionGuidance = nil
+            directionStep = currentStepIndex
+        }
+        guard headingTask == nil, let headingUpdates else { return }
+        headingTask = Task { [weak self] in
+            for await heading in headingUpdates() {
+                guard let self, !Task.isCancelled else { return }
+                self.handle(heading)
+            }
+        }
+    }
+
+    private func handle(_ heading: HeadingSample) {
+        guard let path = currentInstruction?.path,
+              let bearing = DirectionCheck.walkBearing(along: path, from: lastSample?.coordinate) else {
+            directionGuidance = nil
+            return
+        }
+        directionGuidance = directionCheck.update(heading: heading, walkBearing: bearing)
     }
 
     private var trackedInstructionCount = 0

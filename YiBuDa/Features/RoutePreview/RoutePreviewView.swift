@@ -9,6 +9,8 @@ struct RoutePreviewView: View {
     enum Focus: Hashable {
         case boardingArea
         case wholeRoute
+        /// 地圖跟著手機轉：你面對的方向永遠在上方。
+        case myDirection
     }
 
     @Environment(\.dismiss) private var dismiss
@@ -23,8 +25,16 @@ struct RoutePreviewView: View {
                     Picker("地圖範圍", selection: $focus) {
                         Text("上車站附近").tag(Focus.boardingArea)
                         Text("全程").tag(Focus.wholeRoute)
+                        if viewModel.showsLiveLocation {
+                            Text("我的方向").tag(Focus.myDirection)
+                        }
                     }
                     .pickerStyle(.segmented)
+                    if focus == .myDirection {
+                        Label("地圖會跟著手機轉：藍線往上就是往前走。", systemImage: "iphone")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
                     map
                         .frame(height: 340)
                         .clipShape(RoundedRectangle(cornerRadius: Theme.cornerRadius, style: .continuous))
@@ -62,6 +72,8 @@ struct RoutePreviewView: View {
             switch focus {
             case .wholeRoute:
                 camera = .automatic
+            case .myDirection:
+                camera = .userLocation(followsHeading: true, fallback: .automatic)
             case .boardingArea:
                 camera = Self.region(fitting: viewModel.boardingAreaCoordinates).map(MapCameraPosition.region) ?? .automatic
             }
@@ -85,7 +97,8 @@ struct RoutePreviewView: View {
     }
 
     private var map: some View {
-        Map(position: $camera) {
+        // 不允許手勢旋轉：避免地圖被轉歪、手機圖示方向失準；只在「我的方向」模式跟著指南針轉。
+        Map(position: $camera, interactionModes: [.pan, .zoom]) {
             ForEach(viewModel.segments) { segment in
                 MapPolyline(coordinates: segment.coordinates.map(\.clCoordinate))
                     .stroke(segment.kind == .bus ? Color.secondary : Theme.accent,
@@ -95,6 +108,12 @@ struct RoutePreviewView: View {
             ForEach(viewModel.markers) { marker in
                 Marker(marker.title, systemImage: marker.symbolName, coordinate: marker.coordinate.clCoordinate)
                     .tint(marker.tint)
+            }
+            if viewModel.showsLiveLocation {
+                UserAnnotation { userLocation in
+                    // 「我的方向」模式地圖已跟著手機轉，手機圖示固定朝上；其他模式依指南針旋轉。
+                    PhoneLocationMarker(rotation: focus == .myDirection ? 0 : userLocation.heading?.trueHeading)
+                }
             }
         }
         .mapControls {
@@ -135,6 +154,26 @@ struct RoutePreviewView: View {
             }
         }
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// 「你在這裡」改用小手機圖示，頂端指向手機朝向，讓長輩對照手機方向與地圖方向。
+private struct PhoneLocationMarker: View {
+    /// 手機朝向（度）；nil 代表沒有指南針資料，就不顯示方向。
+    let rotation: Double?
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(Theme.accent.opacity(0.18))
+                .frame(width: 64, height: 64)
+            Image(systemName: rotation == nil ? "circle.fill" : "iphone.gen3")
+                .font(.system(size: rotation == nil ? 18 : 30, weight: .bold))
+                .foregroundStyle(Theme.accent)
+                .background(Circle().fill(.white).padding(-4))
+                .rotationEffect(.degrees(rotation ?? 0))
+        }
+        .accessibilityLabel(rotation == nil ? "你在這裡" : "你在這裡，手機朝向")
     }
 }
 
