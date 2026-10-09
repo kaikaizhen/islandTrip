@@ -1,4 +1,4 @@
-# 一步搭（暫定名）— Phase 3（進行中）
+# 島行 — Phase 3（進行中）
 
 iOS 大眾運輸圖像導航助手。Phase 0 驗證平台能力；Phase 1 以模擬資料完成搭車流程；Phase 2 加入真實 GPS、Apple 地圖步行指引、上車側與路口過馬路提示（班次仍是模擬）。計畫全文見 [docs/島行執行計劃.md](docs/島行執行計劃.md)，已確認的決策見 [DECISIONS.md](DECISIONS.md)。
 

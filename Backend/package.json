@@ -2,7 +2,7 @@
   "name": "yibuda-backend",
   "version": "0.1.0",
   "private": true,
-  "description": "一步搭：TDX 保密代理（REST 快取＋MQTT 異常訂閱），部署在家中 NAS",
+  "description": "島行：TDX 保密代理（REST 快取＋MQTT 異常訂閱），部署在家中 NAS",
   "type": "module",
   "engines": {
     "node": ">=22"

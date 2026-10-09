@@ -68,7 +68,7 @@ final class CapabilityTestViewModel {
         notice = nil
 
         guard liveActivity.areActivitiesEnabled else {
-            notice = Notice(kind: .warning, text: "即時動態已關閉，請到「設定 > 一步搭」開啟。App 內仍可繼續模擬。")
+            notice = Notice(kind: .warning, text: "即時動態已關閉，請到「設定 > 島行」開啟。App 內仍可繼續模擬。")
             return
         }
         do {
@@ -112,7 +112,7 @@ final class CapabilityTestViewModel {
                 break
             }
             try await notifications.schedule(
-                LocalNotification(identifier: "phase0.test", title: "一步搭（模擬）", body: "120 公尺後右轉"),
+                LocalNotification(identifier: "phase0.test", title: "島行（模擬）", body: "120 公尺後右轉"),
                 after: Self.testNotificationDelay
             )
             notice = Notice(
@@ -125,6 +125,6 @@ final class CapabilityTestViewModel {
     }
 
     private var deniedNotice: Notice {
-        Notice(kind: .warning, text: "通知權限已關閉，請到「設定 > 一步搭 > 通知」開啟。")
+        Notice(kind: .warning, text: "通知權限已關閉，請到「設定 > 島行 > 通知」開啟。")
     }
 }

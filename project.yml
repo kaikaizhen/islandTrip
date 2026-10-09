@@ -32,7 +32,7 @@ targets:
     info:
       path: YiBuDa/Info.plist
       properties:
-        CFBundleDisplayName: 一步搭
+        CFBundleDisplayName: 島行
         CFBundleDevelopmentRegion: zh-Hant
         NSSupportsLiveActivities: true
         # 後端位址與 App 金鑰來自 Config/Local.xcconfig；未設定時使用模擬資料
@@ -62,7 +62,7 @@ targets:
     info:
       path: YiBuDaLiveActivity/Info.plist
       properties:
-        CFBundleDisplayName: 一步搭即時動態
+        CFBundleDisplayName: 島行即時動態
         CFBundleDevelopmentRegion: zh-Hant
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension

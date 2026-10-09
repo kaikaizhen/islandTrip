@@ -44,7 +44,7 @@ struct CapabilityTestView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("一步搭")
+            Text("島行")
                 .font(.largeTitle.bold())
                 .accessibilityAddTraits(.isHeader)
             Text("帶您輕鬆搭車・安心到達")

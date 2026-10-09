@@ -1,4 +1,4 @@
-# 一步搭後端（NAS）
+# 島行後端（NAS）
 
 TDX 保密代理：TDX 密鑰只存在這裡，App 只知道本服務網址與 App 金鑰。部署在家中 NAS（Docker）。
 
@@ -43,4 +43,4 @@ npm run build && node --env-file=.env dist/index.js
 
 ## 部署到 NAS
 
-使用 `ssh-publish` skill（「把一步搭後端發佈到 NAS」）：本機建置映像 → 傳到 NAS → `docker compose up`。NAS 上需放置 `.env`。App 從外網連線需要 HTTPS（反向代理），部署前確認網域與憑證。
+使用 `ssh-publish` skill（「把島行後端發佈到 NAS」）：本機建置映像 → 傳到 NAS → `docker compose up`。NAS 上需放置 `.env`。App 從外網連線需要 HTTPS（反向代理），部署前確認網域與憑證。
