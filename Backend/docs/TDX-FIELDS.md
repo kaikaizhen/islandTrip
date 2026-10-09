@@ -117,4 +117,17 @@
 - `GET https://tdx.transportdata.tw/api/maas/routing`，參數 `origin`、`destination`（`{lat},{lng}`）、`gc`、`top`、`transit`（3 高鐵、4 臺鐵、5 公車、6 捷運、7 輕軌…）、`transfer_time`、`depart`／`arrival`、`first_mile_*`、`last_mile_*`
 - 計次、計量：不計入
 - 回應外層：`{ result, data: { routes: [ { travel_time, start_time, end_time, transfers, sections } ] } }`
-- **`sections` 的結構官方範例為空，需以真實回應核對後才能使用**
+- `sections` 的結構官方範例為空；以下為 **2026-10-10 以真實金鑰呼叫觀察到的格式**（非官方規格，解析時一律寬鬆、缺欄位不視為錯誤）
+
+### 實際回應（觀察）
+- 路線：`travel_time`（秒）、`start_time`、`end_time`（`yyyy-MM-ddTHH:mm:ss`，臺北時間、無時區）、`transfers`、`day`、`sections[]`
+- 每段：`type`、`departure`／`arrival`（`time`、`place.name`、`place.type`、`place.location.lat`／`lng`）、`travelSummary`（`duration` 秒、`length` 公尺）、`transport`、`actions[]`
+- `type`：
+  - `pedestrian`：步行（`place.type` 為 `place`／`station`／`entrance`／`exit`）
+  - `pedestrian-station`：站內步行（入口→月台、月台→出口）
+  - `waiting`：轉乘等車
+  - `transit`：搭乘；另有 `intermediateStops[]`（`departure.time`、`place`）與 `agency`
+  - `drive`（例：YOXI 計程車）、`cycle`（腳踏車）：**未指定 `first_mile_mode`／`last_mile_mode` 時會出現**，文件說預設步行但實際不是
+- `transport`（`transit` 段）：`mode`（觀察到 `Bus`、`MRT`、`TRA`）、`category`、`name`（路線，例：小26、淡水信義線、基隆-北湖）、`headsign`（往○○）、`shortName`、`longName`、`route_color`、`number`（觀察為空字串）、`type`、`city`（觀察為空字串）、`fare`／`fareTW`
+- **時間都是表定／預估，沒有即時資訊；沒有 TDX StopUID／StationID**，只能用路線名稱＋站名＋座標對回 TDX 資料
+- 呼叫時必須帶 `first_mile_mode=0&last_mile_mode=0`（只步行），並以 `first_mile_time`／`last_mile_time` 限制步行分鐘
