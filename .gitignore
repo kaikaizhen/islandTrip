@@ -1,0 +1,17 @@
+# Xcode（專案檔由 XcodeGen 從 project.yml 產生）
+*.xcodeproj/
+*.xcworkspace/
+xcuserdata/
+DerivedData/
+build/
+*.xcresult
+
+# 個人設定與機密
+Config/Local.xcconfig
+*.secret
+.env
+.dev.vars
+docs/
+
+# macOS
+.DS_Store

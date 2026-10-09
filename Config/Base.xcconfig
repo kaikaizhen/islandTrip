@@ -1,0 +1,3 @@
+// 共用建置設定。個人簽署資訊放在 Local.xcconfig（不進 Git），
+// 範例見 Local.example.xcconfig。
+#include? "Local.xcconfig"

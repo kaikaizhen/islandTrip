@@ -1,0 +1,7 @@
+// 複製為 Config/Local.xcconfig 後填入自己的值；Local.xcconfig 已列入 .gitignore。
+//
+// Apple Developer Team ID（Xcode > Settings > Accounts 可查；免費 Personal Team 也有）
+DEVELOPMENT_TEAM = XXXXXXXXXX
+
+// 注意：TDX Client ID / Secret 絕對不要放在這裡或任何 App 設定中。
+// Phase 3 會由 Cloudflare Workers 保密代理持有，App 只會知道代理網址。
