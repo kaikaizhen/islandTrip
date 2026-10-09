@@ -4,6 +4,7 @@ import Observation
 enum AppRoute: Hashable {
     case options(origin: Place, destination: Place)
     case settings
+    case walkTest
 }
 
 /// 要開始的一趟導航（全螢幕呈現）。
@@ -11,6 +12,8 @@ struct NavigationRequest: Identifiable {
     let id = UUID()
     let journey: Journey
     let alternatives: [Journey]
+    /// 是否用 GPS 自動推進步行步驟。
+    let tracksLocation: Bool
 }
 
 /// 畫面流程：首頁 → 推薦班次（push）→ 導航（全螢幕，避免誤觸返回而中斷）。
@@ -28,8 +31,12 @@ final class AppRouter {
         path.append(.settings)
     }
 
-    func startNavigation(journey: Journey, alternatives: [Journey]) {
-        navigation = NavigationRequest(journey: journey, alternatives: alternatives)
+    func startNavigation(journey: Journey, alternatives: [Journey], tracksLocation: Bool) {
+        navigation = NavigationRequest(journey: journey, alternatives: alternatives, tracksLocation: tracksLocation)
+    }
+
+    func showWalkTest() {
+        path.append(.walkTest)
     }
 
     /// 導航結束後回到首頁。

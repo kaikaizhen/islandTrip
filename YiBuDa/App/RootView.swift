@@ -23,12 +23,20 @@ struct RootView: View {
                 case .options(let origin, let destination):
                     BoardingOptionsScreen(
                         viewModel: dependencies.makeBoardingOptionsViewModel(origin: origin, destination: destination),
-                        onStart: router.startNavigation,
+                        onStart: { journey, alternatives in
+                            router.startNavigation(journey: journey, alternatives: alternatives,
+                                                   tracksLocation: dependencies.settings.locationSource == .gps)
+                        },
                         makePreview: dependencies.makeRoutePreviewViewModel
                     )
                 case .settings:
                     SettingsView(settings: dependencies.settings,
-                                 makeCapabilityTestViewModel: dependencies.makeCapabilityTestViewModel)
+                                 makeCapabilityTestViewModel: dependencies.makeCapabilityTestViewModel,
+                                 onOpenWalkTest: router.showWalkTest)
+                case .walkTest:
+                    WalkTestScreen(viewModel: dependencies.makeWalkTestViewModel()) { journey in
+                        router.startNavigation(journey: journey, alternatives: [], tracksLocation: true)
+                    }
                 }
             }
         }
@@ -49,6 +57,15 @@ private struct BoardingOptionsScreen: View {
 
     var body: some View {
         BoardingOptionsView(viewModel: viewModel, onStart: onStart, makePreview: makePreview)
+    }
+}
+
+private struct WalkTestScreen: View {
+    @State var viewModel: WalkTestViewModel
+    let onStart: (Journey) -> Void
+
+    var body: some View {
+        WalkTestView(viewModel: viewModel, onStart: onStart)
     }
 }
 

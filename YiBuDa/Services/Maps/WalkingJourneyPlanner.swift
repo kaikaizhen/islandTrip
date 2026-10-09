@@ -3,6 +3,8 @@ import Foundation
 /// 把方案中的步行段換成真實步行路線（起點 → 上車站、下車站 → 目的地）。
 protocol JourneyWalkPlanning: Sendable {
     func plan(_ journeys: [Journey]) async -> [Journey]
+    /// 單一段步行（重新規劃、步行測試用）。
+    func walkLeg(from: Coordinate, to: Coordinate, name: String) async -> WalkLeg
 }
 
 struct WalkingJourneyPlanner: JourneyWalkPlanning {
@@ -48,6 +50,10 @@ struct WalkingJourneyPlanner: JourneyWalkPlanning {
         }
     }
 
+    func walkLeg(from: Coordinate, to: Coordinate, name: String) async -> WalkLeg {
+        await leg(for: Pair(from: from, to: to, name: name))
+    }
+
     private func leg(for pair: Pair) async -> WalkLeg {
         do {
             let route = try await routes.walkingRoute(from: pair.from, to: pair.to)
@@ -59,10 +65,6 @@ struct WalkingJourneyPlanner: JourneyWalkPlanning {
     }
 
     /// 無法取得路線時的保守估計：明確標示是估計，不畫成精確路線。
-    func estimatedLeg(from: Coordinate, to: Coordinate, name: String) -> WalkLeg {
-        estimatedLeg(for: Pair(from: from, to: to, name: name))
-    }
-
     private func estimatedLeg(for pair: Pair) -> WalkLeg {
         let meters = Geo.distance(pair.from, pair.to) * detourFactor
         let instruction = NavigationInstruction(

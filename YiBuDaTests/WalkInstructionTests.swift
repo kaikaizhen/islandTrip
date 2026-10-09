@@ -79,6 +79,12 @@ struct WalkInstructionBuilderTests {
         #expect(WalkInstructionBuilder.maneuver(after: start, before: [corner, offset(corner, north: 60, east: 5)]) == .straight)
     }
 
+    @Test func detailOnlyWhenItAddsInformation() {
+        #expect(WalkInstructionBuilder.usefulDetail("右轉") == nil)
+        #expect(WalkInstructionBuilder.usefulDetail("  ") == nil)
+        #expect(WalkInstructionBuilder.usefulDetail("右轉進入松仁路") == "右轉進入松仁路")
+    }
+
     @Test func spokenDistanceRoundsToTensAndKilometres() {
         #expect(WalkInstructionBuilder.spoken(123) == "120 公尺")
         #expect(WalkInstructionBuilder.spoken(3) == "10 公尺")

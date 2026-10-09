@@ -4,6 +4,7 @@ import SwiftUI
 struct SettingsView: View {
     @Bindable var settings: AppSettings
     let makeCapabilityTestViewModel: () -> CapabilityTestViewModel
+    let onOpenWalkTest: () -> Void
 
     var body: some View {
         List {
@@ -27,6 +28,12 @@ struct SettingsView: View {
                     .font(.title3)
             }
             Section("開發者") {
+                Button(action: onOpenWalkTest) {
+                    Label("步行導航測試（真實 GPS）", systemImage: "figure.walk")
+                        .font(.title3)
+                        .frame(minHeight: 44)
+                }
+                .accessibilityIdentifier("walkTest")
                 NavigationLink {
                     CapabilityTestScreen(viewModel: makeCapabilityTestViewModel())
                 } label: {

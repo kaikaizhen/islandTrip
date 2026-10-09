@@ -57,11 +57,16 @@ enum WalkInstructionBuilder {
         case .arrive: "往前走 \(distance)，就到\(destinationName)"
         default: "往前直走 \(distance)"
         }
-        let detail = upcomingText?.trimmingCharacters(in: .whitespacesAndNewlines)
         return NavigationInstruction(
-            id: id, kind: upcoming, displayText: text, detailText: detail?.isEmpty == false ? detail : nil,
+            id: id, kind: upcoming, displayText: text, detailText: usefulDetail(upcomingText),
             distanceMeters: meters, targetCoordinate: path.last, safetyNote: nil, source: .mapKit, path: path
         )
+    }
+
+    /// Apple 地圖原文只有在多提供資訊（例如路名）時才顯示；只有「右轉」這種與主句重複的就不顯示。
+    static func usefulDetail(_ text: String?) -> String? {
+        guard let text = text?.trimmingCharacters(in: .whitespacesAndNewlines), text.count > 4 else { return nil }
+        return text
     }
 
     /// 例：「120 公尺」「1.2 公里」。公尺取到十位，避免假精確。

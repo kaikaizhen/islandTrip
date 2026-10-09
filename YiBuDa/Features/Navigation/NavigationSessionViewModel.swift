@@ -2,7 +2,7 @@ import Foundation
 import Observation
 
 /// 一趟導航：步行到站 → 確認上車側 → 候車 → 搭車 → 下車步行 → 到達。
-/// 上車、下車都由使用者手動確認（計畫 4.3）。
+/// 上車、下車都由使用者手動確認（計畫 4.3）；步行段有 GPS 時自動推進，也可手動。
 @MainActor
 @Observable
 final class NavigationSessionViewModel {
@@ -16,9 +16,19 @@ final class NavigationSessionViewModel {
     private(set) var remainingStops: Int?
     private(set) var notice: String?
 
+    /// 步行段的 GPS 進度；模擬步行段（沒有路徑）時為 nil。
+    private(set) var tracker: WalkProgressTracker?
+    private(set) var isRerouting = false
+    /// 定位權限被拒或定位失敗時的說明。
+    private(set) var locationProblem: String?
+    private var lastSample: LocationSample?
+    private var locationTask: Task<Void, Never>?
+
     private var candidates: [Journey]
     private let transport: any TransportProvider
     private let ranking: TransitRankingService
+    private let locationUpdates: (@Sendable () -> AsyncThrowingStream<LocationSample, Error>)?
+    private let walkPlanner: (any JourneyWalkPlanning)?
     private let now: () -> Date
 
     init(
@@ -26,6 +36,8 @@ final class NavigationSessionViewModel {
         alternatives: [Journey],
         transport: any TransportProvider,
         ranking: TransitRankingService = TransitRankingService(),
+        locationUpdates: (@Sendable () -> AsyncThrowingStream<LocationSample, Error>)? = nil,
+        walkPlanner: (any JourneyWalkPlanning)? = nil,
         now: @escaping () -> Date = Date.init
     ) {
         self.journey = journey
@@ -33,10 +45,13 @@ final class NavigationSessionViewModel {
         self.selectedWaitingID = journey.id
         self.transport = transport
         self.ranking = ranking
+        self.locationUpdates = locationUpdates
+        self.walkPlanner = walkPlanner
         self.now = now
         self.machine = NavigationStateMachine(
             walkToStopSteps: journey.walkToStop?.instructions.count ?? 0,
-            walkToDestinationSteps: journey.walkToDestination?.instructions.count ?? 0
+            walkToDestinationSteps: journey.walkToDestination?.instructions.count ?? 0,
+            hasTransit: journey.busLeg != nil
         )
     }
 
@@ -69,6 +84,7 @@ final class NavigationSessionViewModel {
         case .walkingToStop(let step):
             if let next = journey.walkToStop?.instructions[safe: step + 1] { return next.displayText }
             return bus.map { "確認在 \($0.boardingStop.name) 正確的一側搭 \($0.option.routeName)" }
+                ?? "抵達 \(journey.destination.name)"
         case .walkingToDestination(let step):
             return journey.walkToDestination?.instructions[safe: step + 1]?.displayText ?? "抵達 \(journey.destination.name)"
         default:
@@ -86,7 +102,8 @@ final class NavigationSessionViewModel {
 
     var walkingPrimaryTitle: String {
         switch phase {
-        case .walkingToStop(let step): Self.isLast(step, of: journey.walkToStop) ? "我到站牌了" : "下一步"
+        case .walkingToStop(let step) where Self.isLast(step, of: journey.walkToStop): journey.isWalkOnly ? "我到了" : "我到站牌了"
+        case .walkingToStop: "下一步"
         case .walkingToDestination(let step): Self.isLast(step, of: journey.walkToDestination) ? "我到了" : "下一步"
         default: "下一步"
         }
@@ -100,11 +117,20 @@ final class NavigationSessionViewModel {
 
     func start() async {
         machine.handle(.start)
+        syncTracker()
+        startLocationUpdates()
         await loadStopDetails()
     }
 
-    func nextStep() { machine.handle(.nextStep) }
-    func previousStep() { machine.handle(.previousStep) }
+    func nextStep() {
+        machine.handle(.nextStep)
+        syncTracker()
+    }
+
+    func previousStep() {
+        machine.handle(.previousStep)
+        syncTracker()
+    }
 
     func confirmBoardingSide() async {
         guard machine.handle(.confirmedBoardingSide) else { return }
@@ -120,6 +146,7 @@ final class NavigationSessionViewModel {
         let chosen = candidates.first { $0.id == selectedWaitingID } ?? journey
         guard machine.handle(.boarded(walkToDestinationSteps: chosen.walkToDestination?.instructions.count ?? 0)) else { return }
         journey = chosen
+        syncTracker()
         remainingStops = chosen.busLeg.flatMap { $0.pattern.stopCount(from: $0.option.boardingStopUID, to: $0.option.alightingStopUID) }
         notice = nil
         if let remainingStops, remainingStops <= 1 { machine.handle(.approachingAlightStop) }
@@ -132,9 +159,121 @@ final class NavigationSessionViewModel {
         if remaining - 1 <= 1 { machine.handle(.approachingAlightStop) }
     }
 
-    func alighted() { machine.handle(.alighted) }
+    func alighted() {
+        machine.handle(.alighted)
+        syncTracker()
+    }
 
-    func cancel() { machine.handle(.cancel) }
+    func cancel() {
+        machine.handle(.cancel)
+        syncTracker()
+    }
+
+    // MARK: GPS
+
+    /// 有 GPS 而且這一步有真實路徑時，才自動推進。
+    var isTrackingGPS: Bool { locationUpdates != nil && tracker?.isTrackable == true && locationProblem == nil }
+    var liveRemainingMeters: Int? { isTrackingGPS ? tracker?.remainingMeters : nil }
+    var isOffRoute: Bool { isTrackingGPS && tracker?.isOffRoute == true }
+    var isLowAccuracy: Bool { isTrackingGPS && tracker?.isLowAccuracy == true }
+    var canReroute: Bool { walkPlanner != nil && lastSample != nil && !isRerouting }
+
+    /// 走錯路：從目前位置重新規劃這一段步行，從第一步開始。
+    func reroute() async {
+        guard let walkPlanner, let sample = lastSample, let target = walkingTarget else { return }
+        isRerouting = true
+        defer { isRerouting = false }
+        let toStop = { if case .walkingToStop = phase { true } else { false } }()
+        let leg = await walkPlanner.walkLeg(from: sample.coordinate, to: target.coordinate, name: target.name)
+        journey = journey.replacingWalkLeg(toStop: toStop, with: leg)
+        machine.handle(.rerouted(walkSteps: leg.instructions.count))
+        tracker = nil  // 新路線：重新建立進度判斷
+        syncTracker()
+    }
+
+    /// 重新定位：依目前位置找出應該在哪一步（只往前，不往回）。
+    func relocate() {
+        guard let sample = lastSample, var tracker, let current = currentStepIndex else { return }
+        tracker.relocate(to: sample)
+        for _ in current..<max(current, tracker.step) { machine.handle(.nextStep) }
+        syncTracker()
+    }
+
+    private var currentStepIndex: Int? {
+        switch phase {
+        case .walkingToStop(let step), .walkingToDestination(let step): step
+        default: nil
+        }
+    }
+
+    private var currentWalkLeg: WalkLeg? {
+        switch phase {
+        case .walkingToStop: journey.walkToStop
+        case .walkingToDestination: journey.walkToDestination
+        default: nil
+        }
+    }
+
+    /// 目前步行段要走到哪裡。
+    private var walkingTarget: (name: String, coordinate: Coordinate)? {
+        switch phase {
+        case .walkingToStop:
+            if let bus { return (bus.boardingStop.name, bus.boardingStop.coordinate) }
+            return (journey.destination.name, journey.destination.coordinate)
+        case .walkingToDestination:
+            return (journey.destination.name, journey.destination.coordinate)
+        default:
+            return nil
+        }
+    }
+
+    /// 依目前階段準備（或清除）步行進度判斷；行程結束時停止定位。
+    private func syncTracker() {
+        if let leg = currentWalkLeg, let step = currentStepIndex {
+            if tracker == nil || tracker?.step != step || leg.instructions.count != trackedInstructionCount {
+                tracker = WalkProgressTracker(instructions: leg.instructions, step: step)
+                trackedInstructionCount = leg.instructions.count
+            }
+        } else {
+            tracker = nil
+        }
+        if phase == .idle || phase == .arrived {
+            locationTask?.cancel()
+            locationTask = nil
+        }
+    }
+
+    private var trackedInstructionCount = 0
+
+    private func startLocationUpdates() {
+        guard let locationUpdates, locationTask == nil else { return }
+        locationTask = Task { [weak self] in
+            do {
+                for try await sample in locationUpdates() {
+                    guard let self else { return }
+                    self.handle(sample)
+                }
+            } catch LocationError.denied {
+                self?.locationProblem = "定位權限沒有開啟，請依指示走並手動按「下一步」。"
+            } catch {
+                self?.locationProblem = "暫時無法定位，請依指示走並手動按「下一步」。"
+            }
+        }
+    }
+
+    private func handle(_ sample: LocationSample) {
+        lastSample = sample
+        guard var tracker else { return }
+        let event = tracker.process(sample)
+        self.tracker = tracker
+        switch event {
+        case .advanced, .completed:
+            machine.handle(.nextStep)
+            syncTracker()
+        case .wentOffRoute, .backOnRoute, nil:
+            break
+        }
+    }
 
     func refreshArrivals() async {
         guard let stopUID = bus?.option.boardingStopUID else { return }

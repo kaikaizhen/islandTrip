@@ -57,9 +57,12 @@ struct Journey: Identifiable, Hashable, Sendable {
         legs.lazy.compactMap { if case .bus(let leg) = $0 { leg } else { nil } }.first
     }
 
-    /// 上車前的步行段。
+    /// 純步行（沒有搭車），例如步行測試。
+    var isWalkOnly: Bool { busLeg == nil }
+
+    /// 上車前的步行段；純步行時就是整段路。
     var walkToStop: WalkLeg? {
-        guard case .walk(let leg) = legs.first, legs.count > 1 else { return nil }
+        guard case .walk(let leg) = legs.first, legs.count > 1 || isWalkOnly else { return nil }
         return leg
     }
 
@@ -67,6 +70,15 @@ struct Journey: Identifiable, Hashable, Sendable {
     var walkToDestination: WalkLeg? {
         guard case .walk(let leg) = legs.last, legs.count > 1 else { return nil }
         return leg
+    }
+
+    /// 換掉第一段（上車前）或最後一段（下車後）步行。
+    func replacingWalkLeg(toStop: Bool, with leg: WalkLeg) -> Journey {
+        var copy = self
+        let index = toStop ? copy.legs.startIndex : copy.legs.index(before: copy.legs.endIndex)
+        guard copy.legs.indices.contains(index), case .walk = copy.legs[index] else { return self }
+        copy.legs[index] = .walk(leg)
+        return copy
     }
 
     func replacingBusOption(_ option: BoardingOption) -> Journey {

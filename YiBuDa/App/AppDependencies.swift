@@ -55,12 +55,23 @@ struct AppDependencies {
     }
 
     func makeNavigationSessionViewModel(_ request: NavigationRequest) -> NavigationSessionViewModel {
-        NavigationSessionViewModel(journey: request.journey, alternatives: request.alternatives,
-                                   transport: transport, ranking: ranking)
+        let location = location
+        let updates: (@Sendable () -> AsyncThrowingStream<LocationSample, Error>)? =
+            request.tracksLocation ? { @Sendable in location.liveUpdates() } : nil
+        return NavigationSessionViewModel(
+            journey: request.journey, alternatives: request.alternatives, transport: transport, ranking: ranking,
+            locationUpdates: updates,
+            walkPlanner: walkPlanner ?? WalkingJourneyPlanner(routes: walkingRoutes)
+        )
     }
 
     func makeRoutePreviewViewModel(_ ranked: RankedJourney) -> RoutePreviewViewModel {
         RoutePreviewViewModel(ranked: ranked, transport: transport, routes: walkingRoutes)
+    }
+
+    /// 步行測試一律用真實 GPS 與 Apple 地圖。
+    func makeWalkTestViewModel() -> WalkTestViewModel {
+        WalkTestViewModel(location: location, places: places, planner: WalkingJourneyPlanner(routes: walkingRoutes))
     }
 
     func makeCapabilityTestViewModel() -> CapabilityTestViewModel {
