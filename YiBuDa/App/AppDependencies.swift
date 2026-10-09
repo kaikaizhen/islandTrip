@@ -18,6 +18,8 @@ struct AppDependencies {
     let heading: any HeadingProviding
     let alerts: (any ServiceAlertProviding)?
     let rail: any RailInfoProviding
+    /// 轉乘方案（MaaS）；真實資料時經 NAS 後端。
+    let planner: any TransitPlanning
     /// 班次是否為模擬資料（未設定後端，或 UI 測試）。
     let isMockTransit: Bool
 
@@ -57,6 +59,7 @@ struct AppDependencies {
             heading: CoreLocationHeadingProvider(),
             alerts: remote,
             rail: backend.map { RemoteRailProvider(client: BackendClient(configuration: $0)) } ?? MockRailProvider(),
+            planner: backend.map { RemoteTransitPlanner(client: BackendClient(configuration: $0)) as any TransitPlanning } ?? MockTransitPlanner(),
             isMockTransit: remote == nil
         )
     }
@@ -68,6 +71,10 @@ struct AppDependencies {
     func makeBoardingOptionsViewModel(origin: Place, destination: Place) -> BoardingOptionsViewModel {
         BoardingOptionsViewModel(origin: origin, destination: destination, transport: transport,
                                  walkPlanner: walkPlanner, alerts: alerts, ranking: ranking)
+    }
+
+    func makeTransitPlansViewModel(origin: Place, destination: Place) -> TransitPlansViewModel {
+        TransitPlansViewModel(origin: origin, destination: destination, planner: planner)
     }
 
     func makeNavigationSessionViewModel(_ request: NavigationRequest) -> NavigationSessionViewModel {

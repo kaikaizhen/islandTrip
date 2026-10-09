@@ -24,6 +24,7 @@ struct RootView: View {
                 case .options(let origin, let destination):
                     BoardingOptionsScreen(
                         viewModel: dependencies.makeBoardingOptionsViewModel(origin: origin, destination: destination),
+                        plans: dependencies.makeTransitPlansViewModel(origin: origin, destination: destination),
                         onStart: { journey, alternatives in
                             router.startNavigation(journey: journey, alternatives: alternatives,
                                                    tracksLocation: dependencies.settings.locationSource == .gps)
@@ -60,11 +61,12 @@ struct RootView: View {
 /// 以 @State 持有 ViewModel，避免父畫面重繪時重建而遺失狀態。
 private struct BoardingOptionsScreen: View {
     @State var viewModel: BoardingOptionsViewModel
+    @State var plans: TransitPlansViewModel
     let onStart: (Journey, [Journey]) -> Void
     let makePreview: (RankedJourney) -> RoutePreviewViewModel
 
     var body: some View {
-        BoardingOptionsView(viewModel: viewModel, onStart: onStart, makePreview: makePreview)
+        BoardingOptionsView(viewModel: viewModel, plans: plans, onStart: onStart, makePreview: makePreview)
     }
 }
 

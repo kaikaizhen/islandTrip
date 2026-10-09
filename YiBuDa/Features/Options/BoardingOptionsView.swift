@@ -3,6 +3,8 @@ import SwiftUI
 /// 推薦班次：同站多條路線，主推一班，其他可展開。
 struct BoardingOptionsView: View {
     @Bindable var viewModel: BoardingOptionsViewModel
+    /// 轉乘方案（只供查看）；nil 時不顯示。
+    var plans: TransitPlansViewModel?
     let onStart: (_ journey: Journey, _ alternatives: [Journey]) -> Void
     let makePreview: (RankedJourney) -> RoutePreviewViewModel
 
@@ -29,12 +31,20 @@ struct BoardingOptionsView: View {
                 }
                 alertBanner
                 content
+                if let plans {
+                    TransitPlansSection(viewModel: plans)
+                        .padding(.top, Theme.spacing)
+                }
             }
             .padding(Theme.spacing)
         }
         .navigationTitle("推薦班次")
         .navigationBarTitleDisplayMode(.inline)
-        .refreshable { await viewModel.load() }
+        .refreshable {
+            async let plansLoad: Void = plans?.load() ?? ()
+            await viewModel.load()
+            await plansLoad
+        }
         .bottomAction(viewModel.startTitle, systemImage: "location.fill", isEnabled: viewModel.selected != nil,
                       secondary: viewModel.selected.map { selected in
                           ("在地圖上確認", { preview = makePreview(selected) })
@@ -48,6 +58,8 @@ struct BoardingOptionsView: View {
             }
         }
         .task { await viewModel.load() }
+        // 轉乘方案較慢（MaaS），獨立載入，不拖住直達公車。
+        .task { if plans?.state == .idle { await plans?.load() } }
         .task {
             // 倒數與「能否趕上」會隨時間改變，定期重新評估。
             while !Task.isCancelled {

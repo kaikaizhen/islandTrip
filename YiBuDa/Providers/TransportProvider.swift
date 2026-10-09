@@ -41,6 +41,11 @@ protocol ServiceAlertProviding: Sendable {
     func alerts(city: String) async throws -> [ServiceAlert]
 }
 
+/// 跨運具方案（可轉乘）。真實資料時由 NAS 後端呼叫 TDX MaaS。
+protocol TransitPlanning: Sendable {
+    func plans(from origin: Place, to destination: Place) async throws -> [TransitPlan]
+}
+
 enum TransportProviderError: Error, Equatable {
     case stopNotFound
 }
