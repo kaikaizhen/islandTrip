@@ -35,6 +35,9 @@ targets:
         CFBundleDisplayName: 一步搭
         CFBundleDevelopmentRegion: zh-Hant
         NSSupportsLiveActivities: true
+        NSLocationWhenInUseUsageDescription: 導航時需要你的位置，用來指引步行方向、確認站牌和提醒下車。行程結束後就會停止使用。
+        UIBackgroundModes:
+          - location
         UILaunchScreen: {}
         UIApplicationSupportsIndirectInputEvents: true
         UISupportedInterfaceOrientations:

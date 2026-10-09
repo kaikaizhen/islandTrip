@@ -27,7 +27,8 @@ struct RootView: View {
                         makePreview: dependencies.makeRoutePreviewViewModel
                     )
                 case .settings:
-                    SettingsView(makeCapabilityTestViewModel: dependencies.makeCapabilityTestViewModel)
+                    SettingsView(settings: dependencies.settings,
+                                 makeCapabilityTestViewModel: dependencies.makeCapabilityTestViewModel)
                 }
             }
         }

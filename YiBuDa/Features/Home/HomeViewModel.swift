@@ -1,19 +1,18 @@
 import Foundation
 import Observation
 
-/// 首頁：選目的地（搜尋或常用地點）。
+/// 首頁：出發地（GPS、模擬或手動輸入）與目的地（搜尋或常用地點）。
 @MainActor
 @Observable
 final class HomeViewModel {
-    /// 輸入框文字；與已選目的地不同時視為重新搜尋。
-    var query = "" {
-        didSet { if query != destination?.name { destination = nil } }
-    }
-    private(set) var suggestions: [Place] = []
-    private(set) var destination: Place?
+    let destinationSearch: PlaceSearchModel
     private(set) var favorites: [Place] = []
     private(set) var origin: Place?
-    private(set) var errorMessage: String?
+    private(set) var isLocating = false
+    /// 定位失敗的說明；有值時首頁提供「手動輸入出發地」。
+    private(set) var originProblem: String?
+    /// 使用者手動指定的出發地；有值時不再用 GPS 覆蓋。
+    private var manualOrigin: Place?
 
     private let places: any PlaceSearching
     private let favoritesProvider: any FavoritePlacesProviding
@@ -23,42 +22,69 @@ final class HomeViewModel {
         self.places = places
         self.favoritesProvider = favorites
         self.currentPlace = currentPlace
+        self.destinationSearch = PlaceSearchModel(places: places)
     }
 
+    // 目的地輸入框（保留給畫面與測試的簡短介面）
+    var query: String {
+        get { destinationSearch.query }
+        set { destinationSearch.query = newValue }
+    }
+    var suggestions: [Place] { destinationSearch.suggestions }
+    var destination: Place? { destinationSearch.selected }
+    var errorMessage: String? { destinationSearch.errorMessage }
+
     var canSearchBuses: Bool { destination != nil && origin != nil }
+    var isUsingManualOrigin: Bool { manualOrigin != nil }
 
     func load() async {
         favorites = await favoritesProvider.favoritePlaces()
+        await refreshOrigin()
+    }
+
+    /// 重新取得目前位置（手動指定出發地時不覆蓋）。
+    func refreshOrigin() async {
+        guard manualOrigin == nil else { return }
+        isLocating = true
+        defer { isLocating = false }
         do {
             origin = try await currentPlace.currentPlace()
+            originProblem = nil
+        } catch LocationError.denied {
+            origin = nil
+            originProblem = "定位權限沒有開啟。可以到「設定 > 一步搭 > 位置」開啟，或手動輸入出發地。"
         } catch {
-            errorMessage = "無法取得目前位置。"
+            origin = nil
+            originProblem = "暫時無法取得目前位置，請到空曠處再試，或手動輸入出發地。"
         }
     }
 
     func search() async {
-        guard destination == nil else {
-            suggestions = []
-            return
-        }
-        do {
-            suggestions = try await places.searchPlaces(query, near: origin?.coordinate)
-            errorMessage = nil
-        } catch {
-            suggestions = []
-            errorMessage = "搜尋失敗，請稍後再試。"
-        }
+        await destinationSearch.search(near: origin?.coordinate)
     }
 
     func select(_ place: Place) {
-        destination = place
-        query = place.name
-        suggestions = []
+        destinationSearch.select(place)
     }
 
     func clearDestination() {
-        query = ""
-        suggestions = []
+        destinationSearch.clear()
+    }
+
+    func makeOriginSearch() -> PlaceSearchModel {
+        PlaceSearchModel(places: places)
+    }
+
+    func setManualOrigin(_ place: Place) {
+        manualOrigin = place
+        origin = place
+        originProblem = nil
+    }
+
+    /// 改回使用目前位置。
+    func useCurrentLocation() async {
+        manualOrigin = nil
+        await refreshOrigin()
     }
 }
 

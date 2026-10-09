@@ -11,6 +11,8 @@ struct AppDependencies {
     let currentPlace: any CurrentPlaceProviding
     let ranking: TransitRankingService
     let walkingRoutes: any WalkingRouteProviding
+    let settings: AppSettings
+    let location: any LocationProviding
 
     /// UI 測試用的啟動參數：目的地搜尋改用離線模擬資料，讓測試不依賴網路。
     static let mockPlaceSearchArgument = "-mockPlaceSearch"
@@ -19,15 +21,21 @@ struct AppDependencies {
     static func live(arguments: [String] = ProcessInfo.processInfo.arguments) -> AppDependencies {
         let mock = MockTransportProvider()
         let places: any PlaceSearching = arguments.contains(mockPlaceSearchArgument) ? mock : MapKitPlaceSearch()
+        let settings = AppSettings()
+        let location = CoreLocationProvider()
         return AppDependencies(
             liveActivity: ActivityKitLiveActivityController(),
             notifications: UserNotificationScheduler(),
             transport: mock,
             places: places,
             favorites: mock,
-            currentPlace: mock,
+            currentPlace: SettingsCurrentPlaceProvider(
+                settings: settings, gps: GPSCurrentPlaceProvider(location: location), simulated: mock
+            ),
             ranking: TransitRankingService(),
-            walkingRoutes: MapKitWalkingRouteProvider()
+            walkingRoutes: MapKitWalkingRouteProvider(),
+            settings: settings,
+            location: location
         )
     }
 
