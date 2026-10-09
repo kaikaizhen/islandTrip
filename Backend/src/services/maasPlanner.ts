@@ -4,6 +4,8 @@ import type { TdxApi } from '../tdx/client.js';
 import { maasResponse, maasRoute, type MaasRoute, type MaasSection } from '../tdx/maasTypes.js';
 import { parseList } from '../tdx/types.js';
 import type { Arrival, ArrivalService } from './arrivals.js';
+import { toStopDTO, type StopDTO } from './journeys.js';
+import { findOppositeStop } from './matching.js';
 import type { CityStaticData, StaticDataStore, StopRecord } from './staticData.js';
 
 export interface PlacePoint {
@@ -18,7 +20,13 @@ export type TransitMode = 'bus' | 'metro' | 'tra' | 'thsr' | 'lightRail' | 'ferr
 export interface LegRealtime {
   city: string;
   stopUID: string;
+  /** 用來更新到站時間（/v1/arrivals 回傳整站，App 依路線篩選）。 */
+  routeUID: string;
+  subRouteUID: string | null;
   arrival: Arrival | null;
+  /** 上車站牌與馬路對面同名反方向站牌（App 判斷上車側用）；找不到對面時為 null，不硬猜。 */
+  boardingStop: StopDTO;
+  oppositeStop: StopDTO | null;
 }
 
 export type PlanLeg =
@@ -255,7 +263,16 @@ export class MaasPlanner {
           (byStop.get(match.stop.uid) ?? []).find(
             (a) => a.routeUID === route?.routeUID && (route?.subRouteUID == null || a.subRouteUID == null || a.subRouteUID === route.subRouteUID),
           ) ?? null;
-        match.leg.realtime = { city: city.city, stopUID: match.stop.uid, arrival };
+        const opposite = findOppositeStop(city, match.stop, match.routeKey);
+        match.leg.realtime = {
+          city: city.city,
+          stopUID: match.stop.uid,
+          routeUID: route?.routeUID ?? '',
+          subRouteUID: route?.subRouteUID ?? null,
+          arrival,
+          boardingStop: toStopDTO(match.stop),
+          oppositeStop: opposite ? toStopDTO(opposite) : null,
+        };
       }
     }
   }

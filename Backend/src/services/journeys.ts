@@ -133,6 +133,6 @@ export function buildCandidate(
   };
 }
 
-function toStopDTO(stop: StopRecord): StopDTO {
+export function toStopDTO(stop: StopRecord): StopDTO {
   return { uid: stop.uid, name: stop.name, lat: stop.lat, lon: stop.lon, bearing: stop.bearing, city: stop.city };
 }
