@@ -9,9 +9,10 @@ protocol TransportProvider: Sendable {
     func getStopDetails(stopUID: String) async throws -> StopDetails
 }
 
-/// 目的地搜尋。與交通資料分開，之後可改用 MapKit 地點搜尋。
+/// 目的地搜尋。與交通資料分開；正式使用 Apple MapKit 地點搜尋。
 protocol PlaceSearching: Sendable {
-    func searchPlaces(_ query: String) async throws -> [Place]
+    /// - Parameter near: 優先搜尋此位置附近；nil 時由實作決定範圍。
+    func searchPlaces(_ query: String, near: Coordinate?) async throws -> [Place]
 }
 
 /// 常用地點（家、公司、學校）。

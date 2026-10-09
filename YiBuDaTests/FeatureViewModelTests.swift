@@ -234,3 +234,30 @@ struct MockTransportProviderTests {
         #expect(details.side == .unknown)
     }
 }
+
+actor SpyPlaceSearch: PlaceSearching {
+    private(set) var receivedNear: Coordinate?
+
+    func searchPlaces(_ query: String, near: Coordinate?) async throws -> [Place] {
+        receivedNear = near
+        return []
+    }
+}
+
+@MainActor
+struct PlaceSearchWiringTests {
+    @Test func searchIsCenteredOnCurrentPlace() async {
+        let spy = SpyPlaceSearch()
+        let mock = MockTransportProvider()
+        let sut = HomeViewModel(places: spy, favorites: mock, currentPlace: mock)
+        await sut.load()
+        sut.query = "醫院"
+        await sut.search()
+        #expect(await spy.receivedNear == MockTransitFixture.currentPlace.coordinate)
+    }
+
+    @Test func launchArgumentSelectsOfflinePlaceSearch() {
+        #expect(AppDependencies.live(arguments: ["-mockPlaceSearch"]).places is MockTransportProvider)
+        #expect(AppDependencies.live(arguments: []).places is MapKitPlaceSearch)
+    }
+}

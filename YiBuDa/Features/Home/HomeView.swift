@@ -50,7 +50,8 @@ struct HomeView: View {
         }
         .task { await viewModel.load() }
         .task(id: viewModel.query) {
-            try? await Task.sleep(for: .milliseconds(250))
+            // 打字停頓後才搜尋，避免每個字都向 Apple 地圖發出請求。
+            try? await Task.sleep(for: .milliseconds(400))
             guard !Task.isCancelled else { return }
             await viewModel.search()
         }
@@ -111,13 +112,28 @@ struct HomeView: View {
                     viewModel.select(place)
                     isQueryFocused = false
                 } label: {
-                    Label(place.name, systemImage: place.symbolName)
-                        .font(.title3.weight(.semibold))
-                        .frame(maxWidth: .infinity, minHeight: Theme.minimumButtonHeight, alignment: .leading)
-                        .padding(.horizontal, Theme.spacing)
-                        .contentShape(Rectangle())
+                    Label {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(place.name)
+                                .font(.title3.weight(.semibold))
+                            if let subtitle = place.subtitle {
+                                Text(subtitle)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .multilineTextAlignment(.leading)
+                    } icon: {
+                        Image(systemName: place.symbolName)
+                            .foregroundStyle(Theme.accent)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: Theme.minimumButtonHeight, alignment: .leading)
+                    .padding(.horizontal, Theme.spacing)
+                    .padding(.vertical, 6)
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("suggestion-\(place.name)")
                 if place.id != viewModel.suggestions.last?.id {
                     Divider()
                 }

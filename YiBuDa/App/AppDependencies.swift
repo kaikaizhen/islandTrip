@@ -12,14 +12,18 @@ struct AppDependencies {
     let ranking: TransitRankingService
     let walkingRoutes: any WalkingRouteProviding
 
-    /// 目前只有 Mock 模式；Phase 3 加入真實資料來源時在這裡切換。
-    static func live() -> AppDependencies {
+    /// UI 測試用的啟動參數：目的地搜尋改用離線模擬資料，讓測試不依賴網路。
+    static let mockPlaceSearchArgument = "-mockPlaceSearch"
+
+    /// 交通資料目前只有 Mock；Phase 3 加入真實資料來源時在這裡切換。目的地搜尋使用 Apple MapKit。
+    static func live(arguments: [String] = ProcessInfo.processInfo.arguments) -> AppDependencies {
         let mock = MockTransportProvider()
+        let places: any PlaceSearching = arguments.contains(mockPlaceSearchArgument) ? mock : MapKitPlaceSearch()
         return AppDependencies(
             liveActivity: ActivityKitLiveActivityController(),
             notifications: UserNotificationScheduler(),
             transport: mock,
-            places: mock,
+            places: places,
             favorites: mock,
             currentPlace: mock,
             ranking: TransitRankingService(),

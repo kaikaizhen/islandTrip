@@ -33,14 +33,22 @@ open YiBuDa.xcodeproj
 命令列建置與測試（模擬器）：
 
 ```bash
-xcodebuild -scheme YiBuDa -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test
+xcodebuild -scheme YiBuDa -destination 'platform=iOS Simulator,name=iPhone 18 Pro' test
+
+# 另外執行需要網路的測試（真實 Apple 地圖搜尋）
+TEST_RUNNER_RUN_NETWORK_TESTS=1 xcodebuild -scheme YiBuDa -destination 'platform=iOS Simulator,name=iPhone 18 Pro' \
+  -only-testing:YiBuDaUITests/RealPlaceSearchUITests test
 ```
+
+UI 測試以啟動參數 `-mockPlaceSearch` 改用離線目的地搜尋，因此完整流程測試不依賴網路。
 
 目前只有 **Mock 模式**（`MockTransportProvider`，完全離線）：畫面上一律標示「模擬資料」。Real 模式（TDX + Cloudflare Workers）在 Phase 3 才加入，屆時只需在 `AppDependencies.live()` 換掉實作。
 
 ### Phase 1 操作流程
 
 首頁輸入「台北」選「台北車站」（或點常用地點）→ 開始找車 → 推薦班次（主推 265，其他方案可展開、切換排序）→ 開始導航 → 步行 3 步 → 確認上車側（需過馬路）→ 候車（可改選同站其他班）→ 我已上車 → 模擬前進一站 → 準備下車 → 我已下車 → 步行 2 步 → 已抵達 → 結束導航。
+
+目的地搜尋使用 Apple MapKit（`MKLocalSearch`），取得真實地點名稱、地址與座標，並以目前位置附近優先；需要網路。**班次與站牌仍是固定的模擬資料**（市政府站 → 台北車站），不會隨目的地改變，推薦班次畫面會明確標示；Phase 3 接上真實資料後才會依目的地計算。常用地點（家／公司／學校）目前也是模擬座標。
 
 推薦班次畫面可按「在地圖上確認」：以 Apple MapKit 顯示你的位置、正確上車站、對面同名反方向站牌（灰色「不是這個」）、下車站與目的地；步行段為 MapKit 計算的實際步行路線（需網路，失敗時以直線示意並標明），公車段尚無路線形狀資料，以虛線示意。預設放大上車站附近，可切換「全程」。
 

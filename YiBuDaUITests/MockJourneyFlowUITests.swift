@@ -9,6 +9,7 @@ final class MockJourneyFlowUITests: XCTestCase {
     @MainActor
     func testCompleteJourneyWithMockData() throws {
         let app = XCUIApplication()
+        app.launchArguments = ["-mockPlaceSearch"]
         app.launch()
         // 推薦班次畫面在全螢幕導航底下仍存在，所以每次都找目前看得到的那個按鈕。
         let primary = app.buttons.matching(identifier: "primaryAction")
@@ -18,7 +19,7 @@ final class MockJourneyFlowUITests: XCTestCase {
         let field = app.textFields["destinationField"]
         field.tap()
         field.typeText("台北")
-        tapWhenHittable(app.buttons["台北車站"])
+        tapWhenHittable(app.buttons["suggestion-台北車站"])
         attachScreenshot("1-home")
         tapVisible(primary)
 

@@ -19,6 +19,11 @@ struct BoardingOptionsView: View {
                     Spacer()
                     SimulatedBadge()
                 }
+                // 目的地可能是真實地點，但班次仍是固定的模擬資料，必須說清楚。
+                Label("班次與站牌是模擬資料，尚未依這個目的地計算。", systemImage: "info.circle")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
                 content
             }
             .padding(Theme.spacing)

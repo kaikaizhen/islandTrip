@@ -42,7 +42,7 @@ final class HomeViewModel {
             return
         }
         do {
-            suggestions = try await places.searchPlaces(query)
+            suggestions = try await places.searchPlaces(query, near: origin?.coordinate)
             errorMessage = nil
         } catch {
             suggestions = []

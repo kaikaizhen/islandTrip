@@ -13,6 +13,8 @@ struct Place: Identifiable, Hashable, Sendable {
 
     var id: String
     var name: String
+    /// 地址等補充說明，用來分辨同名地點。
+    var subtitle: String? = nil
     var coordinate: Coordinate
     var kind: Kind = .other
 
