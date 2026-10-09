@@ -81,7 +81,9 @@ struct NavigationSessionView: View {
                 liveRemainingMeters: viewModel.liveRemainingMeters, gpsStatus: gpsStatus,
                 isRerouting: viewModel.isRerouting,
                 onReroute: viewModel.canReroute ? { Task { await viewModel.reroute() } } : nil,
-                onRelocate: { viewModel.relocate() }
+                onRelocate: { viewModel.relocate() },
+                turnAdvice: viewModel.turnAdvice,
+                onSelectSide: { viewModel.setWalkingSide($0) }
             )
                 .bottomAction(viewModel.walkingPrimaryTitle, systemImage: "arrow.right", secondary: backAction) {
                     viewModel.nextStep()
@@ -92,7 +94,9 @@ struct NavigationSessionView: View {
     @ViewBuilder
     private var boardingSideContent: some View {
         if let bus = viewModel.bus {
-            BoardingSideView(bus: bus, details: viewModel.stopDetails)
+            BoardingSideView(bus: bus, details: viewModel.stopDetails, resolution: viewModel.boardingResolution) { answer in
+                viewModel.answerBoardingSide(answer)
+            }
                 .bottomAction("我在正確的站牌了", systemImage: "checkmark", secondary: backAction) {
                     Task { await viewModel.confirmBoardingSide() }
                 }

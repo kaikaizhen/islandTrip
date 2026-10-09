@@ -32,7 +32,13 @@ final class MockJourneyFlowUITests: XCTestCase {
         // 步行到站：3 步
         XCTAssertTrue(app.staticTexts["currentInstruction"].waitForExistence(timeout: 5))
         attachScreenshot("3-walking")
-        for _ in 0..<3 { tapVisible(primary) }
+        tapVisible(primary)
+
+        // 第 2 步要右轉：回答「我在左邊」→ 應提示先在路口過馬路，並顯示路口示意圖
+        tapWhenHittable(app.buttons["side-left"])
+        XCTAssertTrue(app.buttons["resetSide"].waitForExistence(timeout: 5))
+        attachScreenshot("3b-cross-first")
+        for _ in 0..<2 { tapVisible(primary) }
 
         // 確認上車側
         XCTAssertTrue(app.staticTexts["請到對面站牌搭車"].waitForExistence(timeout: 5))

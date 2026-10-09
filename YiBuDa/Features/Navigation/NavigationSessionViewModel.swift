@@ -24,6 +24,14 @@ final class NavigationSessionViewModel {
     private var lastSample: LocationSample?
     private var locationTask: Task<Void, Never>?
 
+    /// 使用者走在馬路的哪一邊（D3）；轉彎後自動推斷，不知道時為 nil。
+    private(set) var walkingSide: WalkSide?
+    /// 上車側：使用者的回答優先，其次是穩定的 GPS 判斷，再其次是站牌資料。
+    private(set) var boardingAnswer: BoardingSideAnswer?
+    private(set) var gpsBoardingEstimate: BoardingSideEstimator.Estimate?
+    private var lastBoardingEstimate: BoardingSideEstimator.Estimate?
+    private var boardingStabilizer = SideEstimateStabilizer()
+
     private var candidates: [Journey]
     private let transport: any TransportProvider
     private let ranking: TransitRankingService
@@ -123,13 +131,60 @@ final class NavigationSessionViewModel {
     }
 
     func nextStep() {
-        machine.handle(.nextStep)
-        syncTracker()
+        advanceWalkingStep()
     }
 
     func previousStep() {
         machine.handle(.previousStep)
+        walkingSide = nil  // 往回走就不確定在哪一邊了
         syncTracker()
+    }
+
+    /// 前進一步；剛完成的是轉彎時，推斷使用者在新道路的哪一邊。
+    private func advanceWalkingStep() {
+        if let kind = currentInstruction?.kind {
+            walkingSide = TurnSideAdvice.sideAfterTurning(kind, previous: walkingSide)
+        }
+        machine.handle(.nextStep)
+        syncTracker()
+    }
+
+    // MARK: 左右側（D3）
+
+    /// 目前這一步轉彎前，要不要先過馬路。
+    var turnAdvice: TurnSideAdvice {
+        guard let kind = currentInstruction?.kind else { return .none }
+        return TurnSideAdvice.advice(for: kind, userSide: walkingSide)
+    }
+
+    func setWalkingSide(_ side: WalkSide?) {
+        walkingSide = side
+    }
+
+    var boardingResolution: BoardingSideResolution {
+        switch boardingAnswer {
+        case .nearbyIsCorrect: return .known(needsToCross: false, source: .manual)
+        case .nearbyIsOpposite: return .known(needsToCross: true, source: .manual)
+        case .cannotSeeSign: return .cannotTell
+        case nil: break
+        }
+        switch gpsBoardingEstimate {
+        case .sameSideAsCorrectStop:
+            return .known(needsToCross: false, source: .gps(accuracy: Int(lastSample?.horizontalAccuracy.rounded() ?? 0)))
+        case .oppositeSide:
+            return .known(needsToCross: true, source: .gps(accuracy: Int(lastSample?.horizontalAccuracy.rounded() ?? 0)))
+        default:
+            break
+        }
+        if case .confirmed(let needsToCross, _) = stopDetails?.side {
+            return .known(needsToCross: needsToCross, source: .stopData)
+        }
+        if case .uncertain(let reason) = lastBoardingEstimate { return .ask(reason: reason) }
+        return .ask(reason: nil)
+    }
+
+    func answerBoardingSide(_ answer: BoardingSideAnswer?) {
+        boardingAnswer = answer
     }
 
     func confirmBoardingSide() async {
@@ -161,6 +216,7 @@ final class NavigationSessionViewModel {
 
     func alighted() {
         machine.handle(.alighted)
+        walkingSide = nil  // 下車後重新確認在哪一邊
         syncTracker()
     }
 
@@ -188,6 +244,7 @@ final class NavigationSessionViewModel {
         journey = journey.replacingWalkLeg(toStop: toStop, with: leg)
         machine.handle(.rerouted(walkSteps: leg.instructions.count))
         tracker = nil  // 新路線：重新建立進度判斷
+        walkingSide = nil
         syncTracker()
     }
 
@@ -245,6 +302,18 @@ final class NavigationSessionViewModel {
 
     private var trackedInstructionCount = 0
 
+    /// 接近上車站時，用兩側站牌判斷使用者在哪一側；連續一致才採用。
+    private func updateBoardingEstimate(with sample: LocationSample) {
+        guard let bus, let opposite = stopDetails?.oppositeStop else { return }
+        switch phase {
+        case .walkingToStop, .checkingBoardingSide: break
+        default: return
+        }
+        let estimate = BoardingSideEstimator.estimate(user: sample, correctStop: bus.boardingStop, oppositeStop: opposite)
+        lastBoardingEstimate = estimate
+        if let stable = boardingStabilizer.add(estimate) { gpsBoardingEstimate = stable }
+    }
+
     private func startLocationUpdates() {
         guard let locationUpdates, locationTask == nil else { return }
         locationTask = Task { [weak self] in
@@ -263,13 +332,13 @@ final class NavigationSessionViewModel {
 
     private func handle(_ sample: LocationSample) {
         lastSample = sample
+        updateBoardingEstimate(with: sample)
         guard var tracker else { return }
         let event = tracker.process(sample)
         self.tracker = tracker
         switch event {
         case .advanced, .completed:
-            machine.handle(.nextStep)
-            syncTracker()
+            advanceWalkingStep()
         case .wentOffRoute, .backOnRoute, nil:
             break
         }
@@ -307,4 +376,26 @@ extension Array {
     subscript(safe index: Int) -> Element? {
         indices.contains(index) ? self[index] : nil
     }
+}
+
+/// 使用者回答「旁邊這一側的站牌寫哪個方向」。
+enum BoardingSideAnswer: Hashable, Sendable {
+    case nearbyIsCorrect
+    case nearbyIsOpposite
+    case cannotSeeSign
+}
+
+/// 上車側的結論與來源。
+enum BoardingSideResolution: Equatable {
+    enum Source: Equatable {
+        case gps(accuracy: Int)
+        case manual
+        case stopData
+    }
+
+    case known(needsToCross: Bool, source: Source)
+    /// 需要問使用者；reason 說明為何無法自動判斷。
+    case ask(reason: String?)
+    /// 使用者看不到站牌：只給文字指引。
+    case cannotTell
 }

@@ -20,6 +20,8 @@ struct WalkingStepView: View {
     var isRerouting = false
     var onReroute: (() -> Void)?
     var onRelocate: (() -> Void)?
+    var turnAdvice: TurnSideAdvice = .none
+    var onSelectSide: ((WalkSide?) -> Void)?
 
     @ScaledMetric(relativeTo: .largeTitle) private var arrowSize: CGFloat = 120
 
@@ -67,6 +69,10 @@ struct WalkingStepView: View {
                 .frame(maxWidth: .infinity)
                 .card()
                 .accessibilityElement(children: .combine)
+
+                if let onSelectSide {
+                    WalkingSideCard(advice: turnAdvice, onSelect: onSelectSide)
+                }
 
                 if let nextStep {
                     NextStepCard(text: nextStep)
