@@ -67,12 +67,13 @@ export function buildCityData(
   }));
   const stopsByUID = new Map(stopRecords.map((stop) => [stop.uid, stop]));
 
+  // 只用附屬路線自己的 Headsign。路線層級的 DestinationStopNameZh 只對去程成立，
+  // 拿來標返程會把方向說反（真實資料：臺北市 Headsign 全為空，忠孝幹線返程被標成「松山車站」）。
   const headsigns = new Map<string, string>();
   for (const route of routes) {
     for (const sub of route.SubRoutes ?? []) {
-      if (sub.Direction == null) continue;
-      const sign = sub.Headsign ?? sub.DestinationStopNameZh ?? route.DestinationStopNameZh;
-      if (sign) headsigns.set(routeKey(route.RouteUID, sub.SubRouteUID, sub.Direction), sign);
+      if (sub.Direction == null || !sub.Headsign?.trim()) continue;
+      headsigns.set(routeKey(route.RouteUID, sub.SubRouteUID, sub.Direction), sub.Headsign.trim());
     }
   }
 
@@ -89,7 +90,8 @@ export function buildCityData(
       routeName: sor.RouteName?.Zh_tw ?? sor.RouteUID,
       subRouteUID: sor.SubRouteUID ?? null,
       direction: sor.Direction,
-      headsign: headsigns.get(key) ?? (lastStopName ? `往${lastStopName}` : '方向未提供'),
+      // 沒有 Headsign 時用「這個方向」站序的最後一站，方向一定正確。
+      headsign: towards(headsigns.get(key) ?? lastStopName),
     });
     for (const stop of ordered) {
       const refs = routesByStop.get(stop.StopUID) ?? [];
@@ -99,6 +101,13 @@ export function buildCityData(
   }
 
   return { city, loadedAt, stops: stopRecords, stopsByUID, routesByStop, routes: routeDirections };
+}
+
+/** 統一成「往○○」；已有「往」開頭就不重複加。 */
+function towards(name: string | undefined): string {
+  const value = name?.trim();
+  if (!value) return '方向未提供';
+  return value.startsWith('往') ? value : `往${value}`;
 }
 
 export interface StaticDataStoreOptions {

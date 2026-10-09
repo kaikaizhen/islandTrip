@@ -6,8 +6,12 @@ export interface NearbyStop {
   distance: number;
 }
 
-/** 找出半徑內的站牌（跨縣市），由近到遠。 */
-export function findNearbyStops(cities: CityStaticData[], center: Coordinate, radius: number, limit = 50): NearbyStop[] {
+/**
+ * 找出半徑內的站牌（跨縣市），由近到遠。
+ * 注意：TDX 臺北市同一根站牌每條路線各有一個 StopUID，市區 500 公尺內常有數百筆；
+ * 配對路線時不可設上限，否則會漏掉路線。
+ */
+export function findNearbyStops(cities: CityStaticData[], center: Coordinate, radius: number, limit = Number.POSITIVE_INFINITY): NearbyStop[] {
   const box = boundingBox(center, radius);
   const result: NearbyStop[] = [];
   for (const data of cities) {
@@ -60,7 +64,21 @@ export function matchDirectRoutes(
       }
     }
   }
-  return [...best.values()].sort((a, b) => score(a) - score(b)).slice(0, maxCandidates);
+  return dedupeSameService([...best.values()].sort((a, b) => score(a) - score(b))).slice(0, maxCandidates);
+}
+
+/**
+ * 同路線名、同方向描述、同一個上車站位的方案對使用者是同一班車（例如同名的不同附屬路線），只留最好的一筆。
+ * 輸入需已依 score 排序。
+ */
+function dedupeSameService(sorted: DirectCandidate[]): DirectCandidate[] {
+  const seen = new Set<string>();
+  return sorted.filter((candidate) => {
+    const key = `${candidate.route.routeName}|${candidate.route.headsign}|${candidate.boarding.stop.stationID ?? candidate.boarding.stop.uid}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 /** 步行越少越好；步行相同時站數少的優先。 */

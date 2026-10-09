@@ -62,7 +62,8 @@ export class JourneyService {
 
   async nearbyStops(center: Coordinate, radius: number): Promise<StopDTO[]> {
     const data = await this.loadCities();
-    return findNearbyStops(data, center, radius).map(({ stop }) => toStopDTO(stop));
+    // 給 App 的清單才限制筆數
+    return findNearbyStops(data, center, radius, 50).map(({ stop }) => toStopDTO(stop));
   }
 
   async findJourneys(origin: Coordinate, destination: Coordinate): Promise<JourneyResponse> {

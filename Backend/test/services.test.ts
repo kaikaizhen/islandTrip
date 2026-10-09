@@ -37,6 +37,17 @@ describe('static data', () => {
     expect(data.routesByStop.get('TPE1003')).toEqual([{ routeKey: 'TPE265|TPE265A|0', sequence: 2, boarding: 0 }]);
   });
 
+  // 真實資料重現：臺北市 Headsign 為空時，返程不可用路線層級的終點站（會把方向說反）。
+  it('uses each direction\'s own last stop when Headsign is missing', () => {
+    const noHeadsign = [{ RouteUID: 'TPE265', RouteName: { Zh_tw: '265' }, DestinationStopNameZh: '台北車站', SubRoutes: [
+      { SubRouteUID: 'TPE265A', Direction: 0, Headsign: null }, { SubRouteUID: 'TPE265A', Direction: 1, Headsign: null },
+    ] }];
+    const data = buildCityData('Taipei', parseList(tdxStop, fx.stops).items, parseList(tdxStopOfRoute, fx.stopOfRoutes).items,
+      parseList(tdxRoute, noHeadsign).items, 0);
+    expect(data.routes.get(routeKey('TPE265', 'TPE265A', 0))?.headsign).toBe('往台北車站');
+    expect(data.routes.get(routeKey('TPE265', 'TPE265A', 1))?.headsign).toBe('往市政府');
+  });
+
   it('downloads once and serves from disk cache afterwards', async () => {
     const dataDir = await mkdtemp(path.join(tmpdir(), 'yibuda-'));
     const api = {
@@ -68,6 +79,34 @@ describe('matching', () => {
     expect(candidates[0]?.boarding.stop.uid).toBe('TPE1001');
     expect(candidates[0]?.alighting.stop.uid).toBe('TPE1004');
     expect(candidates[0]?.stopCount).toBe(2);
+  });
+
+  // 真實資料重現（臺北市政府 → 臺北車站）：原本附近站牌只取 50 筆，市區同一根站牌每條路線各有一筆，
+  // 前 50 筆只涵蓋 3 個站名，導致漏掉路線。
+  it('does not truncate nearby stops used for matching', () => {
+    const base = taipei();
+    const crowd = Array.from({ length: 80 }, (_, i) => ({
+      ...base.stopsByUID.get('TPE1002')!, uid: `CROWD${i}`, lat: 25.04092 + i * 0.000001,
+    }));
+    const data = { ...base, stops: [...crowd, ...base.stops] };
+    const origin = findNearbyStops([data], cityHall, 300);
+    expect(origin.length).toBeGreaterThan(80);
+    const candidates = matchDirectRoutes([data], origin, findNearbyStops([data], mainStation, 300));
+    expect(candidates.map((c) => c.route.routeName)).toContain('265');
+  });
+
+  it('merges same-name sub-routes from the same boarding station into one option', () => {
+    const base = taipei();
+    const twin = { ...base.routes.get('TPE265|TPE265A|0')!, routeKey: 'TPE265|TPE265B|0', subRouteUID: 'TPE265B' };
+    const routes = new Map(base.routes).set(twin.routeKey, twin);
+    const routesByStop = new Map(base.routesByStop);
+    for (const [uid, refs] of base.routesByStop) {
+      const extra = refs.filter((r) => r.routeKey === 'TPE265|TPE265A|0').map((r) => ({ ...r, routeKey: twin.routeKey }));
+      routesByStop.set(uid, [...refs, ...extra]);
+    }
+    const data = { ...base, routes, routesByStop };
+    const candidates = matchDirectRoutes([data], findNearbyStops([data], cityHall, 300), findNearbyStops([data], mainStation, 300));
+    expect(candidates.filter((c) => c.route.routeName === '265')).toHaveLength(1);
   });
 
   it('never boards at an alight-only stop', () => {
