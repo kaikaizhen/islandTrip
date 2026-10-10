@@ -15,12 +15,14 @@ final class HomeViewModel {
     private var manualOrigin: Place?
 
     private let places: any PlaceSearching
-    private let favoritesProvider: any FavoritePlacesProviding
+    private let favoritesStore: any FavoritePlacesStoring
     private let currentPlace: any CurrentPlaceProviding
+    /// 設定常用地點時的錯誤（例如定位失敗）。
+    private(set) var favoriteProblem: String?
 
-    init(places: any PlaceSearching, favorites: any FavoritePlacesProviding, currentPlace: any CurrentPlaceProviding) {
+    init(places: any PlaceSearching, favorites: any FavoritePlacesStoring, currentPlace: any CurrentPlaceProviding) {
         self.places = places
-        self.favoritesProvider = favorites
+        self.favoritesStore = favorites
         self.currentPlace = currentPlace
         self.destinationSearch = PlaceSearchModel(places: places)
     }
@@ -38,8 +40,40 @@ final class HomeViewModel {
     var isUsingManualOrigin: Bool { manualOrigin != nil }
 
     func load() async {
-        favorites = await favoritesProvider.favoritePlaces()
+        favorites = await favoritesStore.favoritePlaces()
         await refreshOrigin()
+    }
+
+    // MARK: 常用地點（使用者自己設定）
+
+    /// 家、公司、學校三個欄位；沒設定的是 nil。
+    var favoriteSlots: [(kind: Place.Kind, place: Place?)] {
+        Place.Kind.favoriteSlots.map { kind in (kind, favorites.first { $0.kind == kind }) }
+    }
+
+    func setFavorite(_ place: Place, as kind: Place.Kind) async {
+        await favoritesStore.setFavorite(place, as: kind)
+        favorites = await favoritesStore.favoritePlaces()
+        favoriteProblem = nil
+        // 正在選這個欄位當目的地時，改成新地點。
+        if destination?.kind == kind, let updated = favorites.first(where: { $0.kind == kind }) { select(updated) }
+    }
+
+    /// 用手機目前位置設定（例如人在家時設定「家」）。
+    func setFavoriteToCurrentLocation(_ kind: Place.Kind) async {
+        do {
+            let here = try await currentPlace.currentPlace()
+            await setFavorite(Place(id: here.id, name: "\(kind.label)（目前位置設定）", subtitle: here.subtitle,
+                                    coordinate: here.coordinate, kind: kind), as: kind)
+        } catch {
+            favoriteProblem = "無法取得目前位置，請改用搜尋地址設定「\(kind.label)」。"
+        }
+    }
+
+    func removeFavorite(_ kind: Place.Kind) async {
+        await favoritesStore.removeFavorite(kind)
+        favorites = await favoritesStore.favoritePlaces()
+        if destination?.kind == kind { clearDestination() }
     }
 
     /// 重新取得目前位置（手動指定出發地時不覆蓋）。
@@ -88,9 +122,18 @@ final class HomeViewModel {
     }
 }
 
-extension Place {
+extension Place.Kind {
     /// 常用地點按鈕上的文字，例：家 →「回家」。
     var favoriteTitle: String {
-        kind == .home ? "回家" : name
+        self == .home ? "回家" : label
+    }
+
+    var symbolName: String {
+        switch self {
+        case .home: "house.fill"
+        case .work: "briefcase.fill"
+        case .school: "graduationcap.fill"
+        case .other: "mappin.circle.fill"
+        }
     }
 }

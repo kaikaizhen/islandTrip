@@ -9,7 +9,7 @@ final class RoutePreviewUITests: XCTestCase {
     @MainActor
     func testPreviewSelectedOptionOnMap() throws {
         let app = XCUIApplication()
-        app.launchArguments = ["-mockTransit"]
+        app.launchArguments = ["-mockPlaceSearch", "-mockTransit"]
         app.launch()
 
         app.buttons["公司"].tap()
