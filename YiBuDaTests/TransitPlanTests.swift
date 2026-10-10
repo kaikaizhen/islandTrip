@@ -195,3 +195,25 @@ struct TransitPlansViewModelTests {
         #expect(viewModel.plans.isEmpty)
     }
 }
+
+struct RouteNameFormatTests {
+    @Test func splitsLongRouteName() {
+        let parts = TransitFormat.routeNameParts("小9(台灣好行-北投竹子湖)")
+        #expect(parts.main == "小9")
+        #expect(parts.detail == "台灣好行-北投竹子湖")
+        #expect(TransitFormat.shortRouteName("紅5（區間車）") == "紅5")
+    }
+
+    @Test func plainNamesStayWhole() {
+        #expect(TransitFormat.routeNameParts("265").main == "265")
+        #expect(TransitFormat.routeNameParts("265").detail == nil)
+        #expect(TransitFormat.routeNameParts("(特)265").main == "(特)265")
+    }
+
+    @Test func countdownBoxParts() {
+        let now = Date(timeIntervalSince1970: 0)
+        #expect(TransitFormat.countdownParts(now.addingTimeInterval(530), now: now, unavailableText: nil) == ("9", "分鐘"))
+        #expect(TransitFormat.countdownParts(now, now: now, unavailableText: nil) == ("即將進站", nil))
+        #expect(TransitFormat.countdownParts(nil, now: now, unavailableText: "末班車已過") == ("末班車已過", nil))
+    }
+}

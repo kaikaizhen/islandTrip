@@ -59,7 +59,7 @@ final class BoardingOptionsViewModel {
     var selected: RankedJourney? { ranked.first { $0.id == selectedID } }
 
     var startTitle: String {
-        selected?.option.map { "開始導航（搭 \($0.routeName)）" } ?? "請先選一班公車"
+        selected?.option.map { "開始導航（搭 \(TransitFormat.shortRouteName($0.routeName))）" } ?? "請先選一班公車"
     }
 
     func load() async {

@@ -154,6 +154,6 @@ struct NavigationSessionView: View {
 
     private var boardTitle: String {
         let route = viewModel.waitingOptions.first { $0.id == viewModel.selectedWaitingID }?.option?.routeName
-        return route.map { "我已上車（\($0)）" } ?? "我已上車"
+        return route.map { "我已上車（\(TransitFormat.shortRouteName($0))）" } ?? "我已上車"
     }
 }
