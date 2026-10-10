@@ -11,6 +11,7 @@ import type { RailAlertService } from '../services/railAlerts.js';
 import type { RailDepartureService } from '../services/railDepartures.js';
 import type { RailStationStore } from '../services/railStations.js';
 import type { StaticDataStore } from '../services/staticData.js';
+import type { UsageMeter } from '../tdx/usage.js';
 
 export interface ServerDependencies {
   appApiKey: string;
@@ -22,6 +23,7 @@ export interface ServerDependencies {
   railDepartures: RailDepartureService;
   railAlerts: RailAlertService;
   planner: MaasPlanner;
+  usage?: UsageMeter;
   /** 每個 IP 每分鐘最多幾次請求。 */
   rateLimitPerMinute?: number;
   now?: () => number;
@@ -82,6 +84,9 @@ export function buildServer(deps: ServerDependencies): FastifyInstance {
     mqttConnected: deps.alerts.mqttConnected,
     staticData: deps.staticData.loadedCities(),
   }));
+
+  // TDX 用量（需 App 金鑰）：今天與最近幾天各類 API 的實際請求數、限流與失敗次數。
+  app.get('/v1/usage', async () => deps.usage?.snapshot() ?? { since: null, days: [] });
 
   app.get('/v1/journeys', async (request) => {
     const q = journeyQuery.parse(request.query);

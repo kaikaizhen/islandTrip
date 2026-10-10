@@ -1,4 +1,5 @@
 import type { TokenSource } from './auth.js';
+import { usageCategory, type UsageMeter } from './usage.js';
 
 export const TDX_API_BASE = 'https://tdx.transportdata.tw/api/basic';
 
@@ -28,6 +29,10 @@ export interface TdxClientOptions {
   now?: () => number;
   /** 是否加上 OData 的 $format=JSON（MaaS 不是 OData，不加）。 */
   odataFormat?: boolean;
+  /** 用量統計；未提供時不計。 */
+  usage?: UsageMeter;
+  /** 用量類別前綴，例：MaaS。 */
+  usagePrefix?: string;
 }
 
 /** TDX REST 用戶端：帶 Bearer token、gzip、逾時、退避重試；401 時重新取 token 再試一次。 */
@@ -91,6 +96,7 @@ export class TdxClient implements TdxApi {
         });
       } catch (error) {
         this.release();
+        this.options.usage?.record(usageCategory(path, this.options.usagePrefix), undefined);
         if (attempt < this.maxRetries) {
           await this.sleep(this.backoff(attempt));
           continue;
@@ -98,6 +104,7 @@ export class TdxClient implements TdxApi {
         throw error;
       }
       this.release();
+      this.options.usage?.record(usageCategory(path, this.options.usagePrefix), response.status);
 
       if (response.ok) return response.json();
       if (response.status === 401 && !refreshedToken) {
