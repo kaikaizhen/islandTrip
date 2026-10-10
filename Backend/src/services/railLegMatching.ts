@@ -22,25 +22,26 @@ export function normalizeStationName(name: string | null | undefined): string {
 }
 
 /**
- * 找上車站對應的 TDX 車站：同系統類別（捷運／臺鐵）、站名相同且在 400 公尺內；
- * 站名不同時只接受 80 公尺內（同一站不同寫法）。都不符就不對（不硬配）。
+ * 找上車站對應的 TDX 車站（由近到遠）：同系統類別（捷運／臺鐵）、站名相同且在 400 公尺內；
+ * 站名不同時只接受 80 公尺內（同一站不同寫法）。都不符就回傳空陣列（不硬配）。
+ * 轉乘站每條線各有一筆（例：台北車站 R10 淡水信義線、BL12 板南線，距離相同），所以回傳全部，由班次比對決定。
  */
-export function matchStation(
+export function matchStations(
   stations: RailStationRecord[],
   mode: 'metro' | 'tra',
   place: { name: string | null; lat: number; lon: number },
-): RailStationRecord | undefined {
+): RailStationRecord[] {
   const wanted = normalizeStationName(place.name);
-  let best: { station: RailStationRecord; distance: number } | undefined;
-  for (const station of stations) {
-    const fits = mode === 'tra' ? station.system === 'TRA' : isMetro(station.system);
-    if (!fits) continue;
-    const distance = distanceMeters({ lat: place.lat, lon: place.lon }, station);
-    const sameName = wanted !== '' && normalizeStationName(station.name) === wanted;
-    if (!(sameName ? distance <= 400 : distance <= 80)) continue;
-    if (!best || distance < best.distance) best = { station, distance };
-  }
-  return best?.station;
+  return stations
+    .flatMap((station) => {
+      const fits = mode === 'tra' ? station.system === 'TRA' : isMetro(station.system);
+      if (!fits) return [];
+      const distance = distanceMeters({ lat: place.lat, lon: place.lon }, station);
+      const sameName = wanted !== '' && normalizeStationName(station.name) === wanted;
+      return (sameName ? distance <= 400 : distance <= 80) ? [{ station, distance }] : [];
+    })
+    .sort((a, b) => a.distance - b.distance)
+    .map(({ station }) => station);
 }
 
 /**

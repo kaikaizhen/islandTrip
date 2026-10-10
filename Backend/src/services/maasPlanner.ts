@@ -7,7 +7,7 @@ import type { Arrival, ArrivalService } from './arrivals.js';
 import { toStopDTO, type StopDTO } from './journeys.js';
 import { findOppositeStop } from './matching.js';
 import type { RailDepartureService } from './railDepartures.js';
-import { matchDeparture, matchStation, toRailLegRealtime, type RailLegRealtime } from './railLegMatching.js';
+import { matchDeparture, matchStations, toRailLegRealtime, type RailLegRealtime } from './railLegMatching.js';
 import type { RailStationStore } from './railStations.js';
 import { TtlCache } from './ttlCache.js';
 import type { CityStaticData, StaticDataStore, StopRecord } from './staticData.js';
@@ -278,13 +278,17 @@ export class MaasPlanner {
     await Promise.all(
       legs.map(async (leg) => {
         const mode = leg.mode === 'tra' ? 'tra' : 'metro';
-        const station = matchStation(stations, mode, leg.from);
-        if (!station) return;
-        const key = `${station.system}:${station.id}`;
-        if (!boards.has(key)) boards.set(key, this.rail!.departures.departures(station.system, station.id).catch(() => undefined));
-        const board = await boards.get(key)!;
-        const departure = board && matchDeparture(mode, leg, board.departures, this.now());
-        if (departure) leg.railRealtime = toRailLegRealtime(station, departure);
+        // 轉乘站有多筆同名車站（每條線一筆）：依序找，哪一筆有這班車就用哪一筆。
+        for (const station of matchStations(stations, mode, leg.from).slice(0, 4)) {
+          const key = `${station.system}:${station.id}`;
+          if (!boards.has(key)) boards.set(key, this.rail!.departures.departures(station.system, station.id).catch(() => undefined));
+          const board = await boards.get(key)!;
+          const departure = board && matchDeparture(mode, leg, board.departures, this.now());
+          if (departure) {
+            leg.railRealtime = toRailLegRealtime(station, departure);
+            return;
+          }
+        }
       }),
     );
   }
