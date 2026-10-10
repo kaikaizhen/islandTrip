@@ -5,6 +5,9 @@ import Foundation
 struct MockTransitPlanner: TransitPlanning {
     var now: @Sendable () -> Date = { Date() }
 
+    /// 模擬資料不會變，原樣回傳。
+    func refreshed(_ realtime: LegRealtime) async throws -> LegRealtime { realtime }
+
     func plans(from origin: Place, to destination: Place) async throws -> [TransitPlan] {
         let now = now()
         let at = { (minutes: Double) in now.addingTimeInterval(minutes * 60) }
@@ -34,7 +37,15 @@ struct MockTransitPlanner: TransitPlanning {
                 .walk(WalkPlanLeg(from: start, to: busStop, seconds: 240, meters: 300, inStation: false)),
                 .transit(TransitLeg(mode: .bus, line: "忠孝幹線", headsign: "往公館", from: busStop, to: busAlight,
                                     departAt: at(5), arriveAt: at(14), stops: [],
-                                    realtime: LegRealtime(stopUID: "MOCK-BUS-1", arrivalAt: at(6), statusNote: nil, updatedAt: now))),
+                                    realtime: LegRealtime(
+                                        stopUID: "MOCK-BUS-1", arrivalAt: at(6), statusNote: nil, updatedAt: now,
+                                        city: "Taipei", routeUID: "MOCK-ZX", subRouteUID: nil,
+                                        boardingStop: Stop(stopUID: "MOCK-BUS-1", name: "捷運市政府站", coordinate: busStop.coordinate,
+                                                           directionDescription: "往公館方向", dataTime: now),
+                                        oppositeStop: Stop(stopUID: "MOCK-BUS-1R", name: "捷運市政府站",
+                                                           coordinate: Coordinate(latitude: 25.0411, longitude: 121.5661),
+                                                           directionDescription: "反方向（往松山）", dataTime: now)
+                                    ))),
                 .walk(WalkPlanLeg(from: busAlight, to: zhongxiao, seconds: 180, meters: 150, inStation: true)),
                 .wait(WaitPlanLeg(at: zhongxiao, seconds: 120)),
                 .transit(TransitLeg(mode: .metro, line: "板南線", headsign: "往頂埔", from: zhongxiao, to: taipeiMain,

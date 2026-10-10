@@ -3,7 +3,11 @@ import SwiftUI
 /// 推薦班次頁下方的「轉乘方案」區塊：只供查看，點了看步驟與地圖。
 struct TransitPlansSection: View {
     let viewModel: TransitPlansViewModel
+    /// nil 時只能查看，不能開始導航。
+    var onStart: ((TransitPlan) -> Void)?
     @State private var detail: TransitPlan?
+    /// 詳情頁按了開始：等詳情頁完全關閉再開導航，避免兩個畫面同時呈現。
+    @State private var pendingStart: TransitPlan?
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.spacing) {
@@ -11,15 +15,21 @@ struct TransitPlansSection: View {
                 .font(.title2.bold())
                 .accessibilityAddTraits(.isHeader)
                 .accessibilityIdentifier("transitPlans")
-            Label("可以先看怎麼走；轉乘的語音導航還沒有提供。", systemImage: "info.circle")
+            Label("點方案可以先看怎麼走，再開始轉乘導航。", systemImage: "info.circle")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             content
         }
-        .sheet(item: $detail) { plan in
+        .sheet(item: $detail, onDismiss: {
+            if let plan = pendingStart {
+                pendingStart = nil
+                onStart?(plan)
+            }
+        }) { plan in
             TransitPlanDetailView(plan: plan, origin: viewModel.origin, destination: viewModel.destination,
-                                  now: viewModel.currentTime)
+                                  now: viewModel.currentTime,
+                                  onStart: onStart == nil ? nil : { pendingStart = plan })
         }
     }
 

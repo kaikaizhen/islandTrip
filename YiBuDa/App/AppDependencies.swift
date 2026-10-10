@@ -93,6 +93,20 @@ struct AppDependencies {
         )
     }
 
+    func makePlanNavigationViewModel(_ request: PlanNavigationRequest) -> PlanNavigationViewModel {
+        let location = location
+        let updates: (@Sendable () -> AsyncThrowingStream<LocationSample, Error>)? =
+            request.tracksLocation ? { @Sendable in location.liveUpdates() } : nil
+        let heading = heading
+        let headingUpdates: (@MainActor () -> AsyncStream<HeadingSample>)? =
+            request.tracksLocation ? { @MainActor in heading.headingUpdates() } : nil
+        return PlanNavigationViewModel(
+            plan: request.plan, origin: request.origin, destination: request.destination, planner: planner,
+            locationUpdates: updates, walkPlanner: walkPlanner, headingUpdates: headingUpdates,
+            notifications: notifications
+        )
+    }
+
     func makeRoutePreviewViewModel(_ ranked: RankedJourney) -> RoutePreviewViewModel {
         RoutePreviewViewModel(ranked: ranked, transport: transport, routes: walkingRoutes,
                               showsLiveLocation: settings.locationSource == .gps)

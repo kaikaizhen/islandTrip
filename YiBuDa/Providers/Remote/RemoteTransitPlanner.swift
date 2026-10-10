@@ -22,6 +22,29 @@ struct RemoteTransitPlanner: TransitPlanning {
         return response.routes.map { Self.plan($0, generatedAt: generatedAt) }
     }
 
+    func refreshed(_ realtime: LegRealtime) async throws -> LegRealtime {
+        guard !realtime.city.isEmpty, !realtime.routeUID.isEmpty else { return realtime }
+        let response: ArrivalsResponseDTO = try await client.get("/v1/arrivals", query: [
+            URLQueryItem(name: "city", value: realtime.city),
+            URLQueryItem(name: "stopUID", value: realtime.stopUID),
+        ])
+        return Self.updating(realtime, with: response)
+    }
+
+    /// 同一站有多條路線：只取這條路線（附屬路線不明時不比對附屬路線）。
+    static func updating(_ realtime: LegRealtime, with response: ArrivalsResponseDTO) -> LegRealtime {
+        var updated = realtime
+        let arrival = response.arrivals.first { arrival in
+            arrival.routeUID == realtime.routeUID &&
+                (realtime.subRouteUID == nil || arrival.subRouteUID == nil || arrival.subRouteUID == realtime.subRouteUID)
+        }
+        let at = ISODate.parse(arrival?.arrivalAt)
+        updated.arrivalAt = at
+        updated.statusNote = at == nil ? RemoteTransportProvider.statusNote(arrival?.status) ?? "查無即時預估" : nil
+        updated.updatedAt = ISODate.parse(arrival?.dataTime) ?? ISODate.parse(response.generatedAt) ?? Date()
+        return updated
+    }
+
     // MARK: 轉換
 
     static func plan(_ dto: PlanRouteDTO, generatedAt: Date) -> TransitPlan {
@@ -47,18 +70,28 @@ struct RemoteTransitPlanner: TransitPlanning {
                 from: place(from), to: place(to),
                 departAt: ISODate.parse(dto.departAt), arriveAt: ISODate.parse(dto.arriveAt),
                 stops: (dto.stops ?? []).map(place),
-                realtime: dto.realtime.map { realtime in
-                    let at = ISODate.parse(realtime.arrival?.arrivalAt)
-                    return LegRealtime(
-                        stopUID: realtime.stopUID, arrivalAt: at,
-                        statusNote: at == nil ? RemoteTransportProvider.statusNote(realtime.arrival?.status) ?? "查無即時預估" : nil,
-                        updatedAt: ISODate.parse(realtime.arrival?.dataTime)
-                    )
-                }
+                realtime: dto.realtime.map { realtime(from: $0, headsign: dto.headsign) }
             ))
         default:
             return nil
         }
+    }
+
+    static func realtime(from dto: PlanLegDTO.Realtime, headsign: String?) -> LegRealtime {
+        let at = ISODate.parse(dto.arrival?.arrivalAt)
+        let updatedAt = ISODate.parse(dto.arrival?.dataTime)
+        let direction = headsign.map { $0.hasPrefix("往") ? "\($0)方向" : "往\($0)方向" } ?? "請確認站牌上的方向"
+        let boarding = dto.boardingStop.map { RemoteTransportProvider.stop($0, direction: direction, dataTime: updatedAt ?? Date()) }
+        let opposite = dto.oppositeStop.map {
+            RemoteTransportProvider.stop($0, direction: RemoteTransportProvider.bearingText($0.bearing), dataTime: updatedAt ?? Date())
+        }
+        return LegRealtime(
+            stopUID: dto.stopUID, arrivalAt: at,
+            statusNote: at == nil ? RemoteTransportProvider.statusNote(dto.arrival?.status) ?? "查無即時預估" : nil,
+            updatedAt: updatedAt, city: dto.city, routeUID: dto.routeUID ?? dto.arrival?.routeUID ?? "",
+            subRouteUID: dto.subRouteUID ?? dto.arrival?.subRouteUID,
+            boardingStop: boarding, oppositeStop: boarding?.validOpposite(opposite)
+        )
     }
 
     static func place(_ dto: PlanPlaceDTO) -> PlanPlace {
@@ -86,6 +119,11 @@ struct PlanLegDTO: Decodable, Sendable {
         var city: String
         var stopUID: String
         var arrival: ArrivalDTO?
+        /// 以下為較新版後端才有的欄位。
+        var routeUID: String?
+        var subRouteUID: String?
+        var boardingStop: StopDTO?
+        var oppositeStop: StopDTO?
     }
 
     var kind: String

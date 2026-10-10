@@ -171,25 +171,9 @@ final class NavigationSessionViewModel {
     }
 
     var boardingResolution: BoardingSideResolution {
-        switch boardingAnswer {
-        case .nearbyIsCorrect: return .known(needsToCross: false, source: .manual)
-        case .nearbyIsOpposite: return .known(needsToCross: true, source: .manual)
-        case .cannotSeeSign: return .cannotTell
-        case nil: break
-        }
-        switch gpsBoardingEstimate {
-        case .sameSideAsCorrectStop:
-            return .known(needsToCross: false, source: .gps(accuracy: Int(lastSample?.horizontalAccuracy.rounded() ?? 0)))
-        case .oppositeSide:
-            return .known(needsToCross: true, source: .gps(accuracy: Int(lastSample?.horizontalAccuracy.rounded() ?? 0)))
-        default:
-            break
-        }
-        if case .confirmed(let needsToCross, _) = stopDetails?.side {
-            return .known(needsToCross: needsToCross, source: .stopData)
-        }
-        if case .uncertain(let reason) = lastBoardingEstimate { return .ask(reason: reason) }
-        return .ask(reason: nil)
+        BoardingSideResolver.resolve(answer: boardingAnswer, gpsEstimate: gpsBoardingEstimate,
+                                     gpsAccuracy: lastSample?.horizontalAccuracy, stopSide: stopDetails?.side,
+                                     lastEstimate: lastBoardingEstimate)
     }
 
     func answerBoardingSide(_ answer: BoardingSideAnswer?) {

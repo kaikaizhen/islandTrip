@@ -99,4 +99,11 @@ struct LegRealtime: Hashable, Sendable {
     var arrivalAt: Date?
     var statusNote: String?
     var updatedAt: Date?
+    /// 更新到站時間用；舊版後端沒有提供時為空字串／nil。
+    var city: String = ""
+    var routeUID: String = ""
+    var subRouteUID: String?
+    /// 上車站牌與馬路對面同名反方向站牌（判斷上車側用）。
+    var boardingStop: Stop?
+    var oppositeStop: Stop?
 }

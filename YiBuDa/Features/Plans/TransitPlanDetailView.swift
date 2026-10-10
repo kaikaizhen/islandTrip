@@ -7,6 +7,8 @@ struct TransitPlanDetailView: View {
     let origin: Place
     let destination: Place
     let now: Date
+    /// nil 時只能查看。
+    var onStart: (() -> Void)?
 
     @Environment(\.dismiss) private var dismiss
 
@@ -37,6 +39,10 @@ struct TransitPlanDetailView: View {
                         .card()
                 }
                 .padding(Theme.spacing)
+            }
+            .bottomAction("開始轉乘導航", systemImage: "location.fill", isVisible: onStart != nil) {
+                onStart?()
+                dismiss()
             }
             .navigationTitle("轉乘方案")
             .navigationBarTitleDisplayMode(.inline)

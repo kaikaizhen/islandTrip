@@ -44,6 +44,8 @@ protocol ServiceAlertProviding: Sendable {
 /// 跨運具方案（可轉乘）。真實資料時由 NAS 後端呼叫 TDX MaaS。
 protocol TransitPlanning: Sendable {
     func plans(from origin: Place, to destination: Place) async throws -> [TransitPlan]
+    /// 重新查詢公車段的即時到站（候車時更新倒數）。
+    func refreshed(_ realtime: LegRealtime) async throws -> LegRealtime
 }
 
 enum TransportProviderError: Error, Equatable {

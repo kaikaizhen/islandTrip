@@ -1,9 +1,23 @@
 import SwiftUI
 
+/// 上車側畫面需要的資訊：直達公車與轉乘方案的公車段共用。
+struct BoardingTarget: Hashable {
+    var routeName: String
+    /// 例：「往台北車站」
+    var direction: String
+    var stop: Stop
+}
+
+extension BoardingTarget {
+    init(_ bus: BusLeg) {
+        self.init(routeName: bus.option.routeName, direction: bus.option.direction, stop: bus.boardingStop)
+    }
+}
+
 /// 確認上車側（草圖 C）：簡化的道路兩側示意，標出你在這裡、正確站牌與搭乘方向。
 /// 依序採用：使用者的回答 → 穩定的 GPS 判斷 → 站牌資料；都沒有就問使用者，不硬猜。
 struct BoardingSideView: View {
-    let bus: BusLeg
+    let target: BoardingTarget
     let details: StopDetails?
     let resolution: BoardingSideResolution
     let onAnswer: (BoardingSideAnswer?) -> Void
@@ -15,15 +29,15 @@ struct BoardingSideView: View {
                     Text(headline)
                         .font(.largeTitle.bold())
                         .fixedSize(horizontal: false, vertical: true)
-                    Text("搭 \(bus.option.routeName)　\(bus.option.direction)")
+                    Text("搭 \(target.routeName)　\(target.direction)")
                         .font(.title2.weight(.semibold))
                 }
                 .accessibilityElement(children: .combine)
 
                 switch resolution {
                 case .known(let needsToCross, let source):
-                    RoadSideDiagram(correctStop: bus.boardingStop, oppositeStop: details?.oppositeStop,
-                                    direction: bus.option.direction, needsToCross: needsToCross)
+                    RoadSideDiagram(correctStop: target.stop, oppositeStop: details?.oppositeStop,
+                                    direction: target.direction, needsToCross: needsToCross)
                     VStack(alignment: .leading, spacing: 8) {
                         SafetyNote(text: guidance(needsToCross: needsToCross, source: source))
                         Label(sourceText(source), systemImage: "info.circle")
@@ -58,7 +72,7 @@ struct BoardingSideView: View {
         if source == .stopData, case .confirmed(_, let text) = details?.side { return text }
         return needsToCross
             ? "請到路口或斑馬線過馬路，再到對面站牌搭車。不要直接穿越車道。"
-            : "站牌在你這一側，確認站牌上有「\(bus.option.routeName)」就可以等車。"
+            : "站牌在你這一側，確認站牌上有「\(target.routeName)」就可以等車。"
     }
 
     private func sourceText(_ source: BoardingSideResolution.Source) -> String {
@@ -81,7 +95,7 @@ struct BoardingSideView: View {
                 .font(.title2.bold())
                 .fixedSize(horizontal: false, vertical: true)
             Button { onAnswer(.nearbyIsCorrect) } label: {
-                Text(bus.boardingStop.directionDescription)
+                Text(target.stop.directionDescription)
             }
             .buttonStyle(.secondary)
             .accessibilityIdentifier("answer-correct")
@@ -102,11 +116,11 @@ struct BoardingSideView: View {
         VStack(alignment: .leading, spacing: 12) {
             SafetyNote(text: "無法確認站牌在馬路哪一側，請找到站牌，查看站名與行駛方向。")
             Divider()
-            Label("\(bus.boardingStop.name)", systemImage: "signpost.right.fill")
+            Label("\(target.stop.name)", systemImage: "signpost.right.fill")
                 .font(.title.bold())
-            Text(bus.boardingStop.directionDescription)
+            Text(target.stop.directionDescription)
                 .font(.title2)
-            Text("站牌上要有「\(bus.option.routeName)」，方向是「\(bus.option.direction)」才對。")
+            Text("站牌上要有「\(target.routeName)」，方向是「\(target.direction)」才對。")
                 .font(.title3)
                 .fixedSize(horizontal: false, vertical: true)
             Button("看到站牌了，重新回答") { onAnswer(nil) }

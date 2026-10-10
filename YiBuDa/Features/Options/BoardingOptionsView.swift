@@ -5,6 +5,7 @@ struct BoardingOptionsView: View {
     @Bindable var viewModel: BoardingOptionsViewModel
     /// 轉乘方案（只供查看）；nil 時不顯示。
     var plans: TransitPlansViewModel?
+    var onStartPlan: ((TransitPlan) -> Void)?
     let onStart: (_ journey: Journey, _ alternatives: [Journey]) -> Void
     let makePreview: (RankedJourney) -> RoutePreviewViewModel
 
@@ -32,7 +33,7 @@ struct BoardingOptionsView: View {
                 alertBanner
                 content
                 if let plans {
-                    TransitPlansSection(viewModel: plans)
+                    TransitPlansSection(viewModel: plans, onStart: onStartPlan)
                         .padding(.top, Theme.spacing)
                 }
             }

@@ -107,6 +107,12 @@ describe('matching MaaS bus legs to TDX stops', () => {
     expect(query).toMatchObject({ first_mile_mode: '0', last_mile_mode: '0', transit: '3,4,5,6,7' });
     const busLeg = result.routes[0]!.legs.find((leg) => leg.kind === 'transit' && leg.mode === 'bus');
     expect(busLeg?.kind === 'transit' && busLeg.realtime?.arrival?.arrivalAt).toBe('2026-10-12T00:21:00.000Z');
+    const realtime = busLeg?.kind === 'transit' ? busLeg.realtime : null;
+    expect(realtime?.routeUID).toBe('TPE26');
+    expect(realtime?.boardingStop.uid).toBe('TPE207800');
+    // 對面站牌必須是不同站位、同名的反方向站牌；不能是上車站本身
+    expect(realtime?.oppositeStop?.uid).toBe('TPE300001'); // 同名、不同站位的往頂湖站牌
+    expect(realtime?.oppositeStop?.name).toBe(realtime?.boardingStop.name);
     const metroLeg = result.routes[0]!.legs.find((leg) => leg.kind === 'transit' && leg.mode === 'metro');
     expect(metroLeg?.kind === 'transit' && metroLeg.realtime).toBeNull();
   });
