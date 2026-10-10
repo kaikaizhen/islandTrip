@@ -146,9 +146,25 @@ struct AlightReminderTests {
         LocationSample(coordinate: coordinate, horizontalAccuracy: accuracy, timestamp: now)
     }
 
-    @Test func gpsFarFromAlightIsNotApproaching() {
+    @Test func gpsAtBoardingStopIsNotApproachingAndHasNoCount() {
         let status = reminder.status(for: PlanFixture.metro, sample: sample(PlanFixture.platform.coordinate), now: now)
-        #expect(status == .init(isApproaching: false, source: .gps, remainingStops: 3))
+        #expect(status == .init(isApproaching: false, source: .gps, remainingStops: nil))
+    }
+
+    @Test func gpsMidwayCountsRemainingStops() {
+        // 忠孝新生：後面還有善導寺、台北車站
+        let status = reminder.status(for: PlanFixture.metro, sample: sample(Coordinate(latitude: 25.0423, longitude: 121.5328)), now: now)
+        #expect(status == .init(isApproaching: false, source: .gps, remainingStops: 2))
+    }
+
+    @Test func legWithoutIntermediateStopsDoesNotAlertAtBoarding() {
+        var leg = PlanFixture.bus()
+        leg.stops = []
+        let atBoarding = reminder.status(for: leg, sample: sample(leg.from.coordinate), now: now)
+        #expect(!atBoarding.isApproaching)
+        #expect(atBoarding.remainingStops == nil)
+        let nearAlight = reminder.status(for: leg, sample: sample(leg.to.coordinate), now: now)
+        #expect(nearAlight.isApproaching)
     }
 
     @Test func gpsAtStopBeforeAlightIsApproaching() {

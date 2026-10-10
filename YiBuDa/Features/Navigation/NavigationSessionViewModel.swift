@@ -14,6 +14,10 @@ final class NavigationSessionViewModel {
     private(set) var selectedWaitingID: Journey.ID
     /// 模擬的剩餘站數；沒有可靠車上位置時為 nil，不可顯示精準站數。
     private(set) var remainingStops: Int?
+    /// 「準備下車」是依 GPS 還是依預估時間判斷的（真實資料沒有完整站序時）。
+    private(set) var alightSource: AlightReminder.Source?
+    private var boardedAt: Date?
+    private let reminder = AlightReminder()
     private(set) var notice: String?
 
     /// 步行段的 GPS 進度；模擬步行段（沒有路徑）時為 nil。
@@ -195,9 +199,44 @@ final class NavigationSessionViewModel {
         guard machine.handle(.boarded(walkToDestinationSteps: chosen.walkToDestination?.instructions.count ?? 0)) else { return }
         journey = chosen
         syncTracker()
-        remainingStops = chosen.busLeg.flatMap { $0.pattern.stopCount(from: $0.option.boardingStopUID, to: $0.option.alightingStopUID) }
+        boardedAt = now()
+        alightSource = nil
+        // 只有完整站序（模擬資料）才能算站數；真實資料只有上下車兩站，算出來會變成「剩 1 站」而誤提醒。
+        remainingStops = chosen.busLeg.flatMap { bus in
+            bus.pattern.hasFullStopSequence
+                ? bus.pattern.stopCount(from: bus.option.boardingStopUID, to: bus.option.alightingStopUID) : nil
+        }
         notice = nil
         if let remainingStops, remainingStops <= 1 { machine.handle(.approachingAlightStop) }
+        updateAlightReminder()
+    }
+
+    /// 預估到下車站的時間（上車時間＋搭乘時間）；用來預排「準備下車」通知。
+    var expectedAlightAt: Date? {
+        guard let boardedAt, let seconds = bus?.option.rideSeconds else { return nil }
+        return boardedAt.addingTimeInterval(TimeInterval(seconds))
+    }
+
+    /// 沒有站數時，用 GPS 離下車站多近或預估抵達時間提醒（與轉乘導航相同規則，決策 D9）。
+    func tick() {
+        updateAlightReminder()
+    }
+
+    private func updateAlightReminder() {
+        guard case .onVehicle(approachingAlight: false) = phase, remainingStops == nil,
+              let bus, let boardedAt else { return }
+        let leg = TransitLeg(
+            mode: .bus, line: bus.option.routeName, headsign: bus.option.direction,
+            from: PlanPlace(name: bus.boardingStop.name, coordinate: bus.boardingStop.coordinate),
+            to: PlanPlace(name: bus.alightingStop.name, coordinate: bus.alightingStop.coordinate),
+            departAt: boardedAt, arriveAt: bus.option.rideSeconds.map { boardedAt.addingTimeInterval(TimeInterval($0)) },
+            stops: [], realtime: nil
+        )
+        let status = reminder.status(for: leg, sample: lastSample, now: now())
+        if status.isApproaching {
+            alightSource = status.source
+            machine.handle(.approachingAlightStop)
+        }
     }
 
     /// 模擬車子往前一站。真實資料（Phase 3–4）只有在站序可信時才會提供。
@@ -367,6 +406,7 @@ final class NavigationSessionViewModel {
     private func handle(_ sample: LocationSample) {
         lastSample = sample
         updateBoardingEstimate(with: sample)
+        if case .onVehicle = phase { updateAlightReminder() }
         guard var tracker else { return }
         let event = tracker.process(sample)
         self.tracker = tracker

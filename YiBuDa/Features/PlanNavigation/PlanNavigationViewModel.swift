@@ -46,7 +46,6 @@ final class PlanNavigationViewModel {
     private let locationUpdates: (@Sendable () -> AsyncThrowingStream<LocationSample, Error>)?
     private let walkPlanner: (any JourneyWalkPlanning)?
     private let headingUpdates: (@MainActor () -> AsyncStream<HeadingSample>)?
-    private let notifications: (any NotificationScheduling)?
     private let reminder: AlightReminder
     private let now: () -> Date
 
@@ -58,7 +57,6 @@ final class PlanNavigationViewModel {
         locationUpdates: (@Sendable () -> AsyncThrowingStream<LocationSample, Error>)? = nil,
         walkPlanner: (any JourneyWalkPlanning)? = nil,
         headingUpdates: (@MainActor () -> AsyncStream<HeadingSample>)? = nil,
-        notifications: (any NotificationScheduling)? = nil,
         reminder: AlightReminder = AlightReminder(),
         now: @escaping () -> Date = Date.init
     ) {
@@ -69,7 +67,6 @@ final class PlanNavigationViewModel {
         self.locationUpdates = locationUpdates
         self.walkPlanner = walkPlanner
         self.headingUpdates = headingUpdates
-        self.notifications = notifications
         self.reminder = reminder
         self.now = now
         self.flow = PlanNavigationFlow(plan: plan, destinationName: destination.name) { walk, name in
@@ -103,7 +100,6 @@ final class PlanNavigationViewModel {
         locationTask = nil
         headingTask = nil
         planningTask = nil
-        if let notifications { Task { await notifications.cancelAll() } }
     }
 
     /// 戶外步行段：在背景向 Apple 地圖要路線，拿到就換掉直線估計。
@@ -140,7 +136,6 @@ final class PlanNavigationViewModel {
         if case .riding = leaving {
             walkingSide = nil  // 下車後重新確認在哪一邊
             alightStatus = AlightReminder.Status(isApproaching: false, source: nil, remainingStops: nil)
-            if let notifications { Task { await notifications.cancelAll() } }
         }
         if flow.currentWalk != nil, flow.walkStep == 0 { walkingSide = nil }
         syncStage()
@@ -168,7 +163,6 @@ final class PlanNavigationViewModel {
             break
         case .riding:
             updateAlightStatus()
-            scheduleScheduledReminder()
         case .arrived:
             locationTask?.cancel()
             locationTask = nil
@@ -301,35 +295,13 @@ final class PlanNavigationViewModel {
             source: wasApproaching ? alightStatus.source : status.source,
             remainingStops: status.remainingStops
         )
-        if !wasApproaching, alightStatus.isApproaching {
-            alertCount += 1
-            if status.source == .gps { scheduleReminder(after: 1, leg: leg) }
-        }
+        // 震動提醒；通知由 NavigationActivityCoordinator 依狀態送出。
+        if !wasApproaching, alightStatus.isApproaching { alertCount += 1 }
     }
 
     /// 搭乘時每 30 秒用時間再判斷一次（沒有 GPS 時靠表定時間）。
     func tick() {
         updateAlightStatus()
-    }
-
-    /// 依表定時間預排通知：手機放口袋、螢幕關著也會提醒。
-    private func scheduleScheduledReminder() {
-        guard let leg = currentTransit, let arriveAt = leg.arriveAt else { return }
-        let delay = arriveAt.addingTimeInterval(-reminder.scheduleLeadTime).timeIntervalSince(now())
-        guard delay > 0 else { return }
-        scheduleReminder(after: delay, leg: leg)
-    }
-
-    private func scheduleReminder(after delay: TimeInterval, leg: TransitLeg) {
-        guard let notifications else { return }
-        let index = flow.transitIndex ?? 0
-        let name = PlanFormat.place(leg.to, fallback: "下車站")
-        let notification = LocalNotification(identifier: "plan-alight-\(index)", title: "準備下車",
-                                             body: "快到 \(name) 了，請準備下車。")
-        Task {
-            guard await notifications.permission() == .authorized else { return }
-            try? await notifications.schedule(notification, after: delay)
-        }
     }
 
     // MARK: 定位與指南針

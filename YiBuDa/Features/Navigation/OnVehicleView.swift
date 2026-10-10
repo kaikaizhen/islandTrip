@@ -5,6 +5,8 @@ struct OnVehicleView: View {
     let bus: BusLeg
     let remainingStops: Int?
     let isApproaching: Bool
+    /// 「準備下車」的依據；依預估時間時要提醒使用者聽廣播確認。
+    var alightSource: AlightReminder.Source?
 
     var body: some View {
         ScrollView {
@@ -18,6 +20,11 @@ struct OnVehicleView: View {
                             .font(.system(size: 40, weight: .bold))
                         Text("下一站：\(bus.alightingStop.name)")
                             .font(.title2.weight(.semibold))
+                        if alightSource == .schedule {
+                            Text("依預估時間提醒，請聽車上廣播確認站名")
+                                .font(.headline)
+                                .multilineTextAlignment(.center)
+                        }
                     }
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)

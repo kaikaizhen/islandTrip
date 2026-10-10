@@ -31,6 +31,33 @@ struct WatchNavigationViewTests {
         }
     }
 
+    /// Phase 4 各階段（D4）在 40mm 手錶也不能被截斷。
+    @Test func everyStageFitsSmallWatchWidth() throws {
+        let now = Date.now
+        let stop = Stop(stopUID: "S", name: "泉源3號橋", coordinate: Coordinate(latitude: 25, longitude: 121),
+                        directionDescription: "往致遠新村方向", dataTime: now)
+        let states: [NavigationActivityAttributes.ContentState] = [
+            NavigationActivityMapper.boardingSide(route: "小9(台灣好行-北投竹子湖)", stop: stop,
+                                                  resolution: .known(needsToCross: true, source: .manual), now: now),
+            NavigationActivityMapper.waiting(route: "小9(台灣好行-北投竹子湖)", stopName: "泉源3號橋", direction: "往致遠新村",
+                                             arrivalAt: now.addingTimeInterval(599), isScheduled: false, alightName: "北投", now: now),
+            NavigationActivityMapper.riding(route: "淡水信義線", alightName: "台北車站", approaching: false,
+                                            remainingStops: 12, alightAt: nil, now: now),
+            NavigationActivityMapper.riding(route: "淡水信義線", alightName: "台北車站", approaching: false,
+                                            remainingStops: nil, alightAt: nil, now: now),
+            NavigationActivityMapper.waiting(route: "淡水信義線", stopName: "台北101/世貿", direction: "往淡水",
+                                             arrivalAt: nil, isScheduled: true, alightName: "北投", now: now),
+            NavigationActivityMapper.riding(route: "307", alightName: "台北車站", approaching: true,
+                                            remainingStops: nil, alightAt: nil, now: now),
+            NavigationActivityMapper.arrived("公司", now: now),
+        ]
+        for state in states {
+            let view = WatchNavigationView(state: state, isSimulated: true, isStale: false).fixedSize()
+            let width = try #require(ImageRenderer(content: view).uiImage).size.width
+            #expect(width <= WatchNavigationView.widthBudget, "\(state.stage)「\(state.shortTitle ?? state.title)」寬 \(width)pt")
+        }
+    }
+
     private func countNearWhitePixels(in view: some View) throws -> Int {
         let renderer = ImageRenderer(content: view)
         renderer.scale = 2

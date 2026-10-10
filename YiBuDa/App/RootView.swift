@@ -55,6 +55,8 @@ struct RootView: View {
         .fullScreenCover(item: $router.navigation) { request in
             NavigationSessionScreen(
                 viewModel: dependencies.makeNavigationSessionViewModel(request),
+                coordinator: dependencies.makeActivityCoordinator(),
+                isSimulated: dependencies.isMockTransit && !request.journey.isWalkOnly,
                 onFinish: router.finishNavigation
             )
             .environment(\.isMockTransit, dependencies.isMockTransit)
@@ -62,6 +64,8 @@ struct RootView: View {
         .fullScreenCover(item: $router.planNavigation) { request in
             PlanNavigationScreen(
                 viewModel: dependencies.makePlanNavigationViewModel(request),
+                coordinator: dependencies.makeActivityCoordinator(),
+                isSimulated: dependencies.isMockTransit,
                 onFinish: router.finishNavigation
             )
             .environment(\.isMockTransit, dependencies.isMockTransit)
@@ -110,18 +114,60 @@ private struct WalkTestScreen: View {
 
 private struct PlanNavigationScreen: View {
     @State var viewModel: PlanNavigationViewModel
+    @State var coordinator: NavigationActivityCoordinator
+    let isSimulated: Bool
     let onFinish: () -> Void
 
     var body: some View {
-        PlanNavigationView(viewModel: viewModel, onFinish: onFinish)
+        PlanNavigationView(viewModel: viewModel) {
+            Task {
+                await coordinator.stop()
+                onFinish()
+            }
+        }
+        .task {
+            let viewModel = viewModel
+            coordinator.start(destinationName: viewModel.destination.name, isSimulated: isSimulated,
+                              requestsNotificationPermission: !isSimulated) { now in
+                NavigationActivityMapper.state(for: viewModel, now: now)
+            } onAction: { action in
+                // 鎖定畫面按鈕：只在對應階段有效（避免重複按）。
+                switch (action, viewModel.stage) {
+                case (.board, .waiting), (.alight, .riding): viewModel.next()
+                default: break
+                }
+            }
+        }
+        .onDisappear { Task { await coordinator.stop() } }
     }
 }
 
 private struct NavigationSessionScreen: View {
     @State var viewModel: NavigationSessionViewModel
+    @State var coordinator: NavigationActivityCoordinator
+    let isSimulated: Bool
     let onFinish: () -> Void
 
     var body: some View {
-        NavigationSessionView(viewModel: viewModel, onFinish: onFinish)
+        NavigationSessionView(viewModel: viewModel) {
+            Task {
+                await coordinator.stop()
+                onFinish()
+            }
+        }
+        .task {
+            let viewModel = viewModel
+            coordinator.start(destinationName: viewModel.journey.destination.name, isSimulated: isSimulated,
+                              requestsNotificationPermission: !isSimulated && !viewModel.journey.isWalkOnly) { now in
+                NavigationActivityMapper.state(for: viewModel, now: now)
+            } onAction: { action in
+                switch (action, viewModel.phase) {
+                case (.board, .waitingAtStop): viewModel.board()
+                case (.alight, .onVehicle): viewModel.alighted()
+                default: break
+                }
+            }
+        }
+        .onDisappear { Task { await coordinator.stop() } }
     }
 }

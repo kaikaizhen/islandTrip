@@ -36,6 +36,11 @@ final class UserNotificationScheduler: NSObject, NotificationScheduling, UNUserN
         try await center.add(request)
     }
 
+    func cancel(identifiers: [String]) async {
+        center.removePendingNotificationRequests(withIdentifiers: identifiers)
+        center.removeDeliveredNotifications(withIdentifiers: identifiers)
+    }
+
     func cancelAll() async {
         center.removeAllPendingNotificationRequests()
         center.removeAllDeliveredNotifications()
@@ -47,6 +52,8 @@ final class UserNotificationScheduler: NSObject, NotificationScheduling, UNUserN
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification
     ) async -> UNNotificationPresentationOptions {
-        [.banner, .list, .sound]
+        // 導航提醒在 App 前景時畫面已經顯示，不再跳橫幅，避免重複打擾（計畫 Phase 4）。
+        if notification.request.identifier.hasPrefix(NavigationAlertPolicy.identifierPrefix) { return [] }
+        return [.banner, .list, .sound]
     }
 }

@@ -92,7 +92,8 @@ actor RemoteTransportProvider: TransportProvider, ServiceAlertProviding {
         )
         // 後端已依站序確認上車站在下車站之前，這裡只保留兩站讓 App 端再驗證一次方向。
         let pattern = RoutePattern(patternId: patternId, routeId: route.uid, routeName: route.name,
-                                   directionName: route.headsign, stopUIDs: [boarding.stopUID, alighting.stopUID])
+                                   directionName: route.headsign, stopUIDs: [boarding.stopUID, alighting.stopUID],
+                                   hasFullStopSequence: false)
         return Journey(id: candidate.id, origin: origin, destination: destination,
                        legs: [.bus(BusLeg(option: option, boardingStop: boarding, alightingStop: alighting, pattern: pattern))],
                        computedAt: generatedAt)

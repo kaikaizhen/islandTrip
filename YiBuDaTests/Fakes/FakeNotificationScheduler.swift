@@ -29,5 +29,12 @@ actor FakeNotificationScheduler: NotificationScheduling {
         scheduled.append((notification, delay))
     }
 
+    private(set) var cancelled: [String] = []
+
+    func cancel(identifiers: [String]) async {
+        cancelled += identifiers
+        scheduled.removeAll { identifiers.contains($0.0.identifier) }
+    }
+
     func cancelAll() async { scheduled.removeAll() }
 }

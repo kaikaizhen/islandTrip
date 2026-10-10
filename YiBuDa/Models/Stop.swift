@@ -21,6 +21,8 @@ struct RoutePattern: Hashable, Sendable {
     /// 例：「往台北車站」
     var directionName: String
     var stopUIDs: [String]
+    /// false：只知道上、下車兩站（真實資料），不可拿來算剩餘站數。
+    var hasFullStopSequence = true
 
     /// 此停靠模式是否先停 `boarding` 再停 `alighting`。
     func serves(from boarding: String, to alighting: String) -> Bool {
