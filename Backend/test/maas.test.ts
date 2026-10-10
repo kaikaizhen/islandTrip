@@ -117,6 +117,33 @@ describe('matching MaaS bus legs to TDX stops', () => {
     expect(metroLeg?.kind === 'transit' && metroLeg.realtime).toBeNull();
   });
 
+  it('caches MaaS routes per trip but re-attaches fresh arrivals every time', async () => {
+    const maas = { get: vi.fn(async () => sample) };
+    const staticData = { get: vi.fn(async () => taipeiData()) };
+    let minute = 21;
+    const arrivals = {
+      arrivals: vi.fn(async () =>
+        new Map([['TPE207800', [{ routeUID: 'TPE26', subRouteUID: 'TPE26', stopUID: 'TPE207800', plateNumber: null,
+          arrivalAt: `2026-10-12T00:${minute}:00.000Z`, status: 'normal', isLastBus: false, dataTime: null }]]]),
+      ),
+    };
+    const planner = new MaasPlanner(maas, staticData as never, arrivals as never, ['Taipei']);
+    const busArrival = (result: Awaited<ReturnType<typeof planner.plan>>) => {
+      const leg = result.routes[0]!.legs.find((l) => l.kind === 'transit' && l.mode === 'bus');
+      return leg?.kind === 'transit' ? leg.realtime?.arrival?.arrivalAt : undefined;
+    };
+    const first = await planner.plan({ lat: 25.15012, lon: 121.52221 }, { lat: 25.0478, lon: 121.517 });
+    minute = 25;
+    // 起點只差約 10 公尺：同一趟，不重查 MaaS；同時查兩次也只送一次
+    const [second] = await Promise.all([
+      planner.plan({ lat: 25.15005, lon: 121.52218 }, { lat: 25.0478, lon: 121.517 }),
+      planner.plan({ lat: 25.15005, lon: 121.52218 }, { lat: 25.0478, lon: 121.517 }),
+    ]);
+    expect(maas.get).toHaveBeenCalledTimes(1);
+    expect(busArrival(first)).toBe('2026-10-12T00:21:00.000Z');
+    expect(busArrival(second)).toBe('2026-10-12T00:25:00.000Z');
+  });
+
   it('reports MaaS failures instead of returning an empty plan', async () => {
     const maas = { get: vi.fn(async () => ({ result: 'fail', error: { code: 20001, msg: 'origin is required' } })) };
     const planner = new MaasPlanner(maas, { get: vi.fn() } as never, { arrivals: vi.fn() } as never, ['Taipei']);

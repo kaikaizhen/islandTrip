@@ -6,6 +6,7 @@ import { parseList } from '../tdx/types.js';
 import type { Arrival, ArrivalService } from './arrivals.js';
 import { toStopDTO, type StopDTO } from './journeys.js';
 import { findOppositeStop } from './matching.js';
+import { TtlCache } from './ttlCache.js';
 import type { CityStaticData, StaticDataStore, StopRecord } from './staticData.js';
 
 export interface PlacePoint {
@@ -194,6 +195,8 @@ export interface MaasPlannerOptions {
   top?: number;
   /** 第一哩／最後一哩最多走幾分鐘。 */
   maxWalkMinutes?: number;
+  /** 同一起訖點（約 100 公尺內）的方案共用多久；即時到站每次重新附上。 */
+  cacheTtlMs?: number;
 }
 
 /** 跨運具規劃：MaaS 給方案（表定時間），公車段能對回 TDX 的就補上即時到站。 */
@@ -201,6 +204,7 @@ export class MaasPlanner {
   private readonly now: () => number;
   private readonly top: number;
   private readonly maxWalkMinutes: number;
+  private readonly cache: TtlCache<PlanRoute[]>;
 
   constructor(
     private readonly maas: TdxApi,
@@ -212,9 +216,23 @@ export class MaasPlanner {
     this.now = options.now ?? Date.now;
     this.top = options.top ?? 5;
     this.maxWalkMinutes = options.maxWalkMinutes ?? 15;
+    this.cache = new TtlCache(options.cacheTtlMs ?? 60_000, this.now);
   }
 
+  /**
+   * MaaS 呼叫慢又容易被限流（真實量測：4 次查詢送出 18 次、10 次 429），
+   * App 重新整理或重進畫面時同一趟行程不重查；同時查同一趟只送一次。
+   */
   async plan(origin: Coordinate, destination: Coordinate): Promise<PlanResponse> {
+    const key = [origin.lat, origin.lon, destination.lat, destination.lon].map((v) => v.toFixed(3)).join(',');
+    const cached = await this.cache.get(key, () => this.fetchRoutes(origin, destination));
+    // 快取的是表定方案；附即時資料會改動段落，所以每次用複本。
+    const routes = structuredClone(cached);
+    await this.attachRealtime(routes);
+    return { generatedAt: new Date(this.now()).toISOString(), routes };
+  }
+
+  private async fetchRoutes(origin: Coordinate, destination: Coordinate): Promise<PlanRoute[]> {
     const raw = await this.maas.get('/routing', {
       origin: `${origin.lat},${origin.lon}`,
       destination: `${destination.lat},${destination.lon}`,
@@ -232,11 +250,9 @@ export class MaasPlanner {
     if (!parsed.success || parsed.data.result !== 'success') {
       throw new Error(`MaaS failed: ${parsed.success ? (parsed.data.error?.msg ?? parsed.data.result) : 'invalid response'}`);
     }
-    const routes = parseList(maasRoute, parsed.data.data?.routes ?? [])
+    return parseList(maasRoute, parsed.data.data?.routes ?? [])
       .items.map(toPlanRoute)
       .flatMap((route) => (route ? [route] : []));
-    await this.attachRealtime(routes);
-    return { generatedAt: new Date(this.now()).toISOString(), routes };
   }
 
   /** 公車段：對回 TDX 站牌並查即時到站（同縣市一次批次查詢）。 */

@@ -49,3 +49,39 @@ describe('UsageMeter', () => {
     expect(JSON.stringify(meter.snapshot())).not.toContain('TPE1');
   });
 });
+
+describe('RequestThrottle', () => {
+  it('doubles the interval on 429 (capped) and recovers after successes', async () => {
+    const { RequestThrottle } = await import('../src/tdx/throttle.js');
+    const throttle = new RequestThrottle({ baseIntervalMs: 300, maxIntervalMs: 1000, recoverAfter: 2 });
+    throttle.rateLimited();
+    expect(throttle.currentIntervalMs).toBe(600);
+    throttle.rateLimited();
+    throttle.rateLimited();
+    expect(throttle.currentIntervalMs).toBe(1000);
+    throttle.succeeded();
+    throttle.succeeded();
+    expect(throttle.currentIntervalMs).toBe(750);
+    for (let i = 0; i < 20; i += 1) throttle.succeeded();
+    expect(throttle.currentIntervalMs).toBe(300);
+  });
+
+  it('is shared: two clients never exceed the combined concurrency', async () => {
+    const { RequestThrottle } = await import('../src/tdx/throttle.js');
+    const throttle = new RequestThrottle({ maxConcurrent: 1, baseIntervalMs: 0 });
+    let inFlight = 0;
+    let peak = 0;
+    const fetch = vi.fn(async () => {
+      inFlight += 1;
+      peak = Math.max(peak, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      inFlight -= 1;
+      return json([]);
+    });
+    const tokens = { token: async () => 't', invalidate: () => undefined };
+    const a = new TdxClient({ tokens, fetch, throttle });
+    const b = new TdxClient({ tokens, fetch, throttle, baseUrl: 'https://example.com', odataFormat: false });
+    await Promise.all([a.get('/x'), b.get('/y'), a.get('/z')]);
+    expect(peak).toBe(1);
+  });
+});
