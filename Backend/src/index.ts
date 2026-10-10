@@ -12,12 +12,14 @@ import { RAIL_SYSTEMS } from './domain/railSystems.js';
 import { StaticDataStore } from './services/staticData.js';
 import { TdxTokenProvider } from './tdx/auth.js';
 import { TdxClient } from './tdx/client.js';
+import { UsageMeter } from './tdx/usage.js';
 
 const log = (message: string) => console.log(`${new Date().toISOString()} ${message}`);
 
 const config = loadConfig();
 const tokens = new TdxTokenProvider({ clientId: config.TDX_CLIENT_ID, clientSecret: config.TDX_CLIENT_SECRET });
-const api = new TdxClient({ tokens });
+const usage = new UsageMeter();
+const api = new TdxClient({ tokens, usage });
 const staticData = new StaticDataStore(api, { dataDir: config.DATA_DIR });
 const arrivals = new ArrivalService(api);
 const alerts = new AlertStore(api);
@@ -27,7 +29,7 @@ const railDepartures = new RailDepartureService(api);
 const railAlerts = new RailAlertService(api);
 // MaaS 旅運規劃：不同基底網址、不是 OData，共用同一組 token
 // 真實測試：MaaS 偶爾要 40 秒以上才回應；單次 25 秒、只重試 1 次，避免 App 等太久
-const maas = new TdxClient({ tokens, baseUrl: 'https://tdx.transportdata.tw/api/maas', odataFormat: false, timeoutMs: 25_000, maxRetries: 1 });
+const maas = new TdxClient({ tokens, baseUrl: 'https://tdx.transportdata.tw/api/maas', odataFormat: false, timeoutMs: 25_000, maxRetries: 1, usage, usagePrefix: 'MaaS' });
 const planner = new MaasPlanner(maas, staticData, arrivals, config.CITIES);
 
 if (config.mqtt) {
@@ -56,7 +58,7 @@ void warmUp();
 setInterval(() => void warmUp(), 24 * 60 * 60 * 1000).unref();
 
 const server = buildServer({
-  appApiKey: config.APP_API_KEY, journeys, arrivals, alerts, staticData, railStations, railDepartures, railAlerts, planner, log,
+  appApiKey: config.APP_API_KEY, journeys, arrivals, alerts, staticData, railStations, railDepartures, railAlerts, planner, usage, log,
 });
 await server.listen({ host: '0.0.0.0', port: config.PORT });
 log(`listening on ${config.PORT}`);
