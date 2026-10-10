@@ -129,10 +129,17 @@ struct NavigationSessionView: View {
     private func onVehicleContent(isApproaching: Bool) -> some View {
         if let bus = viewModel.bus {
             let simulate: (title: String, action: () -> Void)? =
-                isApproaching ? nil : ("模擬：前進一站", { viewModel.simulateNextStop() })
-            OnVehicleView(bus: bus, remainingStops: viewModel.remainingStops, isApproaching: isApproaching)
+                isApproaching || viewModel.remainingStops == nil ? nil : ("模擬：前進一站", { viewModel.simulateNextStop() })
+            OnVehicleView(bus: bus, remainingStops: viewModel.remainingStops, isApproaching: isApproaching,
+                          alightSource: viewModel.alightSource)
                 .bottomAction("我已下車", systemImage: "figure.walk", secondary: simulate) {
                     viewModel.alighted()
+                }
+                .task {
+                    while !Task.isCancelled {
+                        try? await Task.sleep(for: .seconds(30))
+                        viewModel.tick()
+                    }
                 }
         }
     }

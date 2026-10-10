@@ -82,6 +82,7 @@ private struct PreviewNotifications: NotificationScheduling {
     func permission() async -> NotificationPermission { .authorized }
     func requestPermission() async throws -> Bool { true }
     func schedule(_ notification: LocalNotification, after delay: TimeInterval) async throws {}
+    func cancel(identifiers: [String]) async {}
     func cancelAll() async {}
 }
 

@@ -15,18 +15,17 @@ struct WatchNavigationView: View {
         // 箭頭在左、文字在右；Smart Stack 高度固定，右側最多三列。
         // 40mm 手錶很窄，系統已有邊距，這裡不再加左右 padding。
         HStack(alignment: .center, spacing: 6) {
-            ManeuverArrow(maneuver: state.maneuver, size: 28)
+            StageIcon(state: state, size: 28)
+                .foregroundStyle(state.stage == .walking ? Theme.accent : .white)
             VStack(alignment: .leading, spacing: 1) {
-                Text(state.title)
+                Text(state.shortTitle ?? state.title)
                     .font(.headline)
                     .foregroundStyle(.white)
                     .lineLimit(2)
-                if let meters = state.distanceMeters {
-                    Text(DistanceFormatter.long(meters))
-                        .font(.title3.bold())
-                        .foregroundStyle(.white)
-                        .lineLimit(1)
-                }
+                KeyValueText(state: state, compact: false, maxRouteLength: 4, isStale: isStale)
+                    .font(.title3.bold())
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
                 if let status {
                     Text(status)
                         .font(.footnote.weight(.semibold))

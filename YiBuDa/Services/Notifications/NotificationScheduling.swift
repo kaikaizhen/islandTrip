@@ -18,5 +18,7 @@ protocol NotificationScheduling: Sendable {
     /// 回傳使用者是否允許通知。
     func requestPermission() async throws -> Bool
     func schedule(_ notification: LocalNotification, after delay: TimeInterval) async throws
+    /// 取消尚未送出與已送出的指定通知（例：已上車就不再提醒「車快到了」）。
+    func cancel(identifiers: [String]) async
     func cancelAll() async
 }

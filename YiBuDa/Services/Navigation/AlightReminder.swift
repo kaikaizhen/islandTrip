@@ -35,7 +35,9 @@ struct AlightReminder: Sendable {
                 Geo.distance(sample.coordinate, stations[lhs].coordinate) < Geo.distance(sample.coordinate, stations[rhs].coordinate)
             }
             var remaining: Int?
-            if let nearest, Geo.distance(sample.coordinate, stations[nearest].coordinate) <= nearStopRadius {
+            // 沒有中途站資料時算不出站數；還在上車站附近也不算（剛上車不能就提醒下車）。
+            if !leg.stops.isEmpty, let nearest, nearest > 0,
+               Geo.distance(sample.coordinate, stations[nearest].coordinate) <= nearStopRadius {
                 remaining = stations.count - 1 - nearest
             }
             // 已在下車站前一站附近，或離下車站夠近。

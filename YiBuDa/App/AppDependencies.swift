@@ -102,9 +102,13 @@ struct AppDependencies {
             request.tracksLocation ? { @MainActor in heading.headingUpdates() } : nil
         return PlanNavigationViewModel(
             plan: request.plan, origin: request.origin, destination: request.destination, planner: planner,
-            locationUpdates: updates, walkPlanner: walkPlanner, headingUpdates: headingUpdates,
-            notifications: notifications
+            locationUpdates: updates, walkPlanner: walkPlanner, headingUpdates: headingUpdates
         )
+    }
+
+    /// 導航期間的 Live Activity 與提醒通知（直達公車、轉乘共用）。
+    func makeActivityCoordinator() -> NavigationActivityCoordinator {
+        NavigationActivityCoordinator(controller: liveActivity, notifications: notifications)
     }
 
     func makeRoutePreviewViewModel(_ ranked: RankedJourney) -> RoutePreviewViewModel {
