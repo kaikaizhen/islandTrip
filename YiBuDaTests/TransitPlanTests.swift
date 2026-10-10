@@ -164,6 +164,7 @@ struct TransitPlansViewModelTests {
     struct StubPlanner: TransitPlanning {
         var result: Result<[TransitPlan], BackendError>
         func plans(from origin: Place, to destination: Place) async throws -> [TransitPlan] { try result.get() }
+        func refreshed(_ realtime: LegRealtime) async throws -> LegRealtime { realtime }
     }
 
     let origin = Place(id: "o", name: "起點", coordinate: Coordinate(latitude: 25.04, longitude: 121.56))

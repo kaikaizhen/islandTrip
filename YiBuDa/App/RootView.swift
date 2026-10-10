@@ -25,6 +25,10 @@ struct RootView: View {
                     BoardingOptionsScreen(
                         viewModel: dependencies.makeBoardingOptionsViewModel(origin: origin, destination: destination),
                         plans: dependencies.makeTransitPlansViewModel(origin: origin, destination: destination),
+                        onStartPlan: { plan in
+                            router.startPlanNavigation(plan: plan, origin: origin, destination: destination,
+                                                       tracksLocation: dependencies.settings.locationSource == .gps)
+                        },
                         onStart: { journey, alternatives in
                             router.startNavigation(journey: journey, alternatives: alternatives,
                                                    tracksLocation: dependencies.settings.locationSource == .gps)
@@ -55,6 +59,13 @@ struct RootView: View {
             )
             .environment(\.isMockTransit, dependencies.isMockTransit)
         }
+        .fullScreenCover(item: $router.planNavigation) { request in
+            PlanNavigationScreen(
+                viewModel: dependencies.makePlanNavigationViewModel(request),
+                onFinish: router.finishNavigation
+            )
+            .environment(\.isMockTransit, dependencies.isMockTransit)
+        }
     }
 }
 
@@ -62,11 +73,12 @@ struct RootView: View {
 private struct BoardingOptionsScreen: View {
     @State var viewModel: BoardingOptionsViewModel
     @State var plans: TransitPlansViewModel
+    let onStartPlan: (TransitPlan) -> Void
     let onStart: (Journey, [Journey]) -> Void
     let makePreview: (RankedJourney) -> RoutePreviewViewModel
 
     var body: some View {
-        BoardingOptionsView(viewModel: viewModel, plans: plans, onStart: onStart, makePreview: makePreview)
+        BoardingOptionsView(viewModel: viewModel, plans: plans, onStartPlan: onStartPlan, onStart: onStart, makePreview: makePreview)
     }
 }
 
@@ -93,6 +105,15 @@ private struct WalkTestScreen: View {
 
     var body: some View {
         WalkTestView(viewModel: viewModel, onStart: onStart)
+    }
+}
+
+private struct PlanNavigationScreen: View {
+    @State var viewModel: PlanNavigationViewModel
+    let onFinish: () -> Void
+
+    var body: some View {
+        PlanNavigationView(viewModel: viewModel, onFinish: onFinish)
     }
 }
 

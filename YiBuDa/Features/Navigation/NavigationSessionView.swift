@@ -96,7 +96,7 @@ struct NavigationSessionView: View {
     @ViewBuilder
     private var boardingSideContent: some View {
         if let bus = viewModel.bus {
-            BoardingSideView(bus: bus, details: viewModel.stopDetails, resolution: viewModel.boardingResolution) { answer in
+            BoardingSideView(target: BoardingTarget(bus), details: viewModel.stopDetails, resolution: viewModel.boardingResolution) { answer in
                 viewModel.answerBoardingSide(answer)
             }
                 .bottomAction("我在正確的站牌了", systemImage: "checkmark", secondary: backAction) {
