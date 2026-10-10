@@ -27,14 +27,14 @@ struct HomeViewModelTests {
     let mock = MockTransportProvider()
 
     func makeSUT() -> HomeViewModel {
-        HomeViewModel(places: mock, favorites: mock, currentPlace: mock)
+        HomeViewModel(places: mock, favorites: InMemoryFavoritePlacesStore(MockTransitFixture.favorites), currentPlace: mock)
     }
 
     @Test func needsDestinationBeforeSearchingBuses() async {
         let sut = makeSUT()
         await sut.load()
         #expect(sut.origin != nil)
-        #expect(sut.favorites.map(\.favoriteTitle) == ["回家", "公司", "學校"])
+        #expect(sut.favoriteSlots.map(\.place?.name) == ["大安區住處", "台北車站", "臺灣大學"])
         #expect(!sut.canSearchBuses)
     }
 
@@ -249,7 +249,7 @@ struct PlaceSearchWiringTests {
     @Test func searchIsCenteredOnCurrentPlace() async {
         let spy = SpyPlaceSearch()
         let mock = MockTransportProvider()
-        let sut = HomeViewModel(places: spy, favorites: mock, currentPlace: mock)
+        let sut = HomeViewModel(places: spy, favorites: InMemoryFavoritePlacesStore(MockTransitFixture.favorites), currentPlace: mock)
         await sut.load()
         sut.query = "醫院"
         await sut.search()
@@ -259,5 +259,65 @@ struct PlaceSearchWiringTests {
     @Test func launchArgumentSelectsOfflinePlaceSearch() {
         #expect(AppDependencies.live(arguments: ["-mockPlaceSearch"]).places is MockTransportProvider)
         #expect(AppDependencies.live(arguments: []).places is MapKitPlaceSearch)
+    }
+}
+
+/// 常用地點由使用者設定、只存在手機（不再寫死家／公司／學校的位置）。
+@MainActor
+struct FavoritePlacesTests {
+    let mock = MockTransportProvider()
+    let office = Place(id: "mk.1", name: "信義區辦公室", subtitle: "台北市信義區", coordinate: Coordinate(latitude: 25.033, longitude: 121.565))
+
+    @Test func startsEmptyWithThreeSlots() async {
+        let sut = HomeViewModel(places: mock, favorites: InMemoryFavoritePlacesStore(), currentPlace: mock)
+        await sut.load()
+        #expect(sut.favorites.isEmpty)
+        #expect(sut.favoriteSlots.map(\.kind) == [.home, .work, .school])
+        #expect(sut.favoriteSlots.allSatisfy { $0.place == nil })
+    }
+
+    @Test func setReplaceAndRemove() async {
+        let sut = HomeViewModel(places: mock, favorites: InMemoryFavoritePlacesStore(), currentPlace: mock)
+        await sut.load()
+        await sut.setFavorite(office, as: .work)
+        #expect(sut.favoriteSlots[1].place?.name == "信義區辦公室")
+        #expect(sut.favoriteSlots[1].place?.kind == .work)
+        sut.select(sut.favoriteSlots[1].place!)
+        // 更換時，若正選它當目的地就一起更新
+        await sut.setFavorite(MockTransitFixture.taipeiMainStation, as: .work)
+        #expect(sut.destination?.name == "台北車站")
+        await sut.removeFavorite(.work)
+        #expect(sut.favorites.isEmpty)
+        #expect(sut.destination == nil)
+    }
+
+    @Test func setFromCurrentLocation() async {
+        let sut = HomeViewModel(places: mock, favorites: InMemoryFavoritePlacesStore(), currentPlace: mock)
+        await sut.setFavoriteToCurrentLocation(.home)
+        let home = sut.favoriteSlots[0].place
+        #expect(home?.name == "家（目前位置設定）")
+        #expect(home?.coordinate == MockTransitFixture.currentPlace.coordinate)
+    }
+
+    @Test func currentLocationFailureExplains() async {
+        let sut = HomeViewModel(places: mock, favorites: InMemoryFavoritePlacesStore(), currentPlace: FailingCurrentPlace(error: .timeout))
+        await sut.setFavoriteToCurrentLocation(.school)
+        #expect(sut.favorites.isEmpty)
+        #expect(sut.favoriteProblem?.contains("學校") == true)
+    }
+
+    @Test func userDefaultsStorePersists() async {
+        let suite = "favorites-test-\(UUID().uuidString)"
+        defer { UserDefaults(suiteName: suite)?.removePersistentDomain(forName: suite) }
+        let store = UserDefaultsFavoritePlacesStore(suiteName: suite)
+        await store.setFavorite(office, as: .school)
+        await store.setFavorite(MockTransitFixture.taipeiMainStation, as: .home)
+        // 新的實例（模擬重新開 App）讀得到，且依家、公司、學校排序
+        let reloaded = await UserDefaultsFavoritePlacesStore(suiteName: suite).favoritePlaces()
+        #expect(reloaded.map(\.kind) == [.home, .school])
+        #expect(reloaded[1].name == "信義區辦公室")
+        #expect(reloaded[1].subtitle == "台北市信義區")
+        await store.removeFavorite(.home)
+        #expect(await store.favoritePlaces().map(\.kind) == [.school])
     }
 }

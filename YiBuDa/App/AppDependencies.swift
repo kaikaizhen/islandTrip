@@ -7,7 +7,7 @@ struct AppDependencies {
     let notifications: UserNotificationScheduler
     let transport: any TransportProvider
     let places: any PlaceSearching
-    let favorites: any FavoritePlacesProviding
+    let favorites: any FavoritePlacesStoring
     let currentPlace: any CurrentPlaceProviding
     let ranking: TransitRankingService
     let walkingRoutes: any WalkingRouteProviding
@@ -27,6 +27,8 @@ struct AppDependencies {
     static let mockPlaceSearchArgument = "-mockPlaceSearch"
     /// UI 測試用的啟動參數：步行段沿用模擬資料（步驟數固定），不向 Apple 地圖要路線。
     static let mockWalkingArgument = "-mockWalking"
+    /// UI 測試用的啟動參數：常用地點從空的開始（測試設定流程）。
+    static let emptyFavoritesArgument = "-uiTestEmptyFavorites"
     /// UI 測試用的啟動參數：即使設定了後端也使用模擬班次。
     static let mockTransitArgument = "-mockTransit"
 
@@ -47,7 +49,7 @@ struct AppDependencies {
             notifications: UserNotificationScheduler(),
             transport: remote ?? mock,
             places: places,
-            favorites: mock,
+            favorites: favoritesStore(arguments: arguments),
             currentPlace: SettingsCurrentPlaceProvider(
                 settings: settings, gps: GPSCurrentPlaceProvider(location: location), simulated: mock
             ),
@@ -62,6 +64,13 @@ struct AppDependencies {
             planner: backend.map { RemoteTransitPlanner(client: BackendClient(configuration: $0)) as any TransitPlanning } ?? MockTransitPlanner(),
             isMockTransit: remote == nil
         )
+    }
+
+    /// 常用地點：正式使用存在手機（使用者自己設定）；離線 UI 測試用記憶體（可預先放入或從空的開始）。
+    private static func favoritesStore(arguments: [String]) -> any FavoritePlacesStoring {
+        if arguments.contains(emptyFavoritesArgument) { return InMemoryFavoritePlacesStore() }
+        if arguments.contains(mockPlaceSearchArgument) { return InMemoryFavoritePlacesStore(MockTransitFixture.favorites) }
+        return UserDefaultsFavoritePlacesStore()
     }
 
     func makeHomeViewModel() -> HomeViewModel {

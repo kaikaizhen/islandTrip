@@ -7,8 +7,20 @@ struct Coordinate: Hashable, Sendable {
 
 /// 起點或目的地。
 struct Place: Identifiable, Hashable, Sendable {
-    enum Kind: Hashable, Sendable {
+    enum Kind: String, Hashable, Sendable, Codable, CaseIterable {
         case home, work, school, other
+
+        /// 常用地點的三個欄位（依序顯示）。
+        static let favoriteSlots: [Kind] = [.home, .work, .school]
+
+        var label: String {
+            switch self {
+            case .home: "家"
+            case .work: "公司"
+            case .school: "學校"
+            case .other: "其他"
+            }
+        }
     }
 
     var id: String
@@ -19,12 +31,5 @@ struct Place: Identifiable, Hashable, Sendable {
     var kind: Kind = .other
 
     /// 常用地點的圖示。
-    var symbolName: String {
-        switch kind {
-        case .home: "house.fill"
-        case .work: "briefcase.fill"
-        case .school: "graduationcap.fill"
-        case .other: "mappin.circle.fill"
-        }
-    }
+    var symbolName: String { kind.symbolName }
 }

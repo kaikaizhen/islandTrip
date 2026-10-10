@@ -28,7 +28,7 @@ struct OriginTests {
     let mock = MockTransportProvider()
 
     @Test func gpsOriginShowsAccuracy() async {
-        let sut = HomeViewModel(places: mock, favorites: mock,
+        let sut = HomeViewModel(places: mock, favorites: InMemoryFavoritePlacesStore(MockTransitFixture.favorites),
                                 currentPlace: GPSCurrentPlaceProvider(location: FakeLocationProvider()))
         await sut.load()
         #expect(sut.origin?.name == "目前位置")
@@ -37,7 +37,7 @@ struct OriginTests {
     }
 
     @Test func deniedPermissionExplainsAndAllowsManualOrigin() async {
-        let sut = HomeViewModel(places: mock, favorites: mock, currentPlace: FailingCurrentPlace(error: .denied))
+        let sut = HomeViewModel(places: mock, favorites: InMemoryFavoritePlacesStore(MockTransitFixture.favorites), currentPlace: FailingCurrentPlace(error: .denied))
         await sut.load()
         #expect(sut.origin == nil)
         #expect(sut.originProblem?.contains("定位權限") == true)
@@ -51,7 +51,7 @@ struct OriginTests {
     }
 
     @Test func manualOriginIsNotOverwrittenByRefresh() async {
-        let sut = HomeViewModel(places: mock, favorites: mock,
+        let sut = HomeViewModel(places: mock, favorites: InMemoryFavoritePlacesStore(MockTransitFixture.favorites),
                                 currentPlace: GPSCurrentPlaceProvider(location: FakeLocationProvider()))
         sut.setManualOrigin(MockTransitFixture.favorites[1])
         await sut.refreshOrigin()
@@ -63,7 +63,7 @@ struct OriginTests {
     }
 
     @Test func timeoutGivesRetryAdvice() async {
-        let sut = HomeViewModel(places: mock, favorites: mock, currentPlace: FailingCurrentPlace(error: .timeout))
+        let sut = HomeViewModel(places: mock, favorites: InMemoryFavoritePlacesStore(MockTransitFixture.favorites), currentPlace: FailingCurrentPlace(error: .timeout))
         await sut.load()
         #expect(sut.originProblem?.contains("手動輸入") == true)
     }

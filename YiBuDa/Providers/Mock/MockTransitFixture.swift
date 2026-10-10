@@ -8,10 +8,11 @@ enum MockTransitFixture {
     static let taipeiMainStation = Place(id: "mock.tpe", name: "台北車站",
                                          coordinate: Coordinate(latitude: 25.0478, longitude: 121.5170))
 
+    /// 只給離線 UI 測試預先放入的常用地點；正式使用時常用地點由使用者自己設定（一開始是空的）。
     static let favorites: [Place] = [
-        Place(id: "mock.home", name: "家", coordinate: Coordinate(latitude: 25.0330, longitude: 121.5430), kind: .home),
-        Place(id: "mock.work", name: "公司", coordinate: Coordinate(latitude: 25.0478, longitude: 121.5170), kind: .work),
-        Place(id: "mock.school", name: "學校", coordinate: Coordinate(latitude: 25.0173, longitude: 121.5397), kind: .school),
+        Place(id: "favorite.home", name: "大安區住處", coordinate: Coordinate(latitude: 25.0330, longitude: 121.5430), kind: .home),
+        Place(id: "favorite.work", name: "台北車站", coordinate: Coordinate(latitude: 25.0478, longitude: 121.5170), kind: .work),
+        Place(id: "favorite.school", name: "臺灣大學", coordinate: Coordinate(latitude: 25.0173, longitude: 121.5397), kind: .school),
     ]
 
     static let searchablePlaces: [Place] = [

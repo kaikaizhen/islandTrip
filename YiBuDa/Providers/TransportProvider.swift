@@ -15,9 +15,12 @@ protocol PlaceSearching: Sendable {
     func searchPlaces(_ query: String, near: Coordinate?) async throws -> [Place]
 }
 
-/// 常用地點（家、公司、學校）。
-protocol FavoritePlacesProviding: Sendable {
+/// 常用地點（家、公司、學校）：由使用者自己設定，只存在這支手機。
+protocol FavoritePlacesStoring: Sendable {
+    /// 已設定的常用地點，依家、公司、學校排序。
     func favoritePlaces() async -> [Place]
+    func setFavorite(_ place: Place, as kind: Place.Kind) async
+    func removeFavorite(_ kind: Place.Kind) async
 }
 
 /// 目前位置。Phase 2 改由 Core Location 提供。

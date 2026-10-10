@@ -9,6 +9,8 @@ struct HomeView: View {
 
     @FocusState private var isQueryFocused: Bool
     @State private var originSearch: PlaceSearchModel?
+    @State private var favoriteEditing: FavoriteEditing?
+    @State private var managesFavorites = false
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -203,28 +205,101 @@ struct HomeView: View {
     }
 
     private var favoriteGrid: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: Theme.spacing)], spacing: Theme.spacing) {
-            ForEach(viewModel.favorites) { place in
-                Button {
-                    viewModel.select(place)
-                    isQueryFocused = false
-                } label: {
-                    VStack(spacing: 8) {
-                        Image(systemName: place.symbolName)
-                            .font(.largeTitle)
-                        Text(place.favoriteTitle)
-                            .font(.title3.weight(.semibold))
+        VStack(alignment: .leading, spacing: Theme.spacing) {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: Theme.spacing)], spacing: Theme.spacing) {
+                ForEach(viewModel.favoriteSlots, id: \.kind) { slot in
+                    if let place = slot.place {
+                        favoriteButton(place)
+                    } else {
+                        emptySlotButton(slot.kind)
                     }
-                    .frame(maxWidth: .infinity, minHeight: 110)
-                    .foregroundStyle(viewModel.destination?.id == place.id ? Color.white : Color.primary)
-                    .background(
-                        viewModel.destination?.id == place.id ? Theme.accent : Color(.secondarySystemBackground),
-                        in: RoundedRectangle(cornerRadius: Theme.cornerRadius, style: .continuous)
-                    )
                 }
-                .buttonStyle(.plain)
-                .accessibilityAddTraits(viewModel.destination?.id == place.id ? .isSelected : [])
+            }
+            if let problem = viewModel.favoriteProblem {
+                SafetyNote(text: problem)
+            }
+            if !viewModel.favorites.isEmpty {
+                Button {
+                    managesFavorites = true
+                } label: {
+                    Label("管理常用地點", systemImage: "pencil")
+                        .font(.headline)
+                        .frame(minHeight: 44)
+                }
+                .accessibilityIdentifier("manageFavorites")
+            }
+        }
+        .sheet(item: $favoriteEditing) { editing in
+            PlacePickerView(title: "設定「\(editing.kind.label)」", search: editing.search, near: viewModel.origin?.coordinate,
+                            currentLocationAction: { Task { await viewModel.setFavoriteToCurrentLocation(editing.kind) } }) { place in
+                Task { await viewModel.setFavorite(place, as: editing.kind) }
+            }
+        }
+        .sheet(isPresented: $managesFavorites) {
+            FavoritesManagerView(viewModel: viewModel) { kind in
+                managesFavorites = false
+                // 等管理頁關閉再開搜尋頁，避免兩個畫面同時呈現。
+                Task {
+                    try? await Task.sleep(for: .milliseconds(400))
+                    favoriteEditing = FavoriteEditing(kind: kind, search: viewModel.makeOriginSearch())
+                }
             }
         }
     }
+
+    private func favoriteButton(_ place: Place) -> some View {
+        let isSelected = viewModel.destination?.id == place.id
+        return Button {
+            viewModel.select(place)
+            isQueryFocused = false
+        } label: {
+            VStack(spacing: 6) {
+                Image(systemName: place.kind.symbolName)
+                    .font(.largeTitle)
+                Text(place.kind.favoriteTitle)
+                    .font(.title3.weight(.semibold))
+                Text(place.name)
+                    .font(.subheadline)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+                    .opacity(0.8)
+            }
+            .padding(8)
+            .frame(maxWidth: .infinity, minHeight: 120)
+            .foregroundStyle(isSelected ? Color.white : Color.primary)
+            .background(isSelected ? Theme.accent : Color(.secondarySystemBackground),
+                        in: RoundedRectangle(cornerRadius: Theme.cornerRadius, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(place.kind.label)
+        .accessibilityValue(place.name)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    /// 還沒設定：點了直接設定（搜尋地址或用目前位置）。
+    private func emptySlotButton(_ kind: Place.Kind) -> some View {
+        Button {
+            favoriteEditing = FavoriteEditing(kind: kind, search: viewModel.makeOriginSearch())
+        } label: {
+            VStack(spacing: 6) {
+                Image(systemName: "plus.circle")
+                    .font(.largeTitle)
+                Text("設定\(kind.label)")
+                    .font(.title3.weight(.semibold))
+            }
+            .frame(maxWidth: .infinity, minHeight: 120)
+            .foregroundStyle(Theme.accent)
+            .overlay(RoundedRectangle(cornerRadius: Theme.cornerRadius, style: .continuous)
+                .strokeBorder(Theme.accent, style: StrokeStyle(lineWidth: 2, dash: [6, 4])))
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("setFavorite-\(kind.rawValue)")
+    }
+}
+
+/// 正在設定哪一個常用地點（給 sheet 用）。
+struct FavoriteEditing: Identifiable {
+    let kind: Place.Kind
+    let search: PlaceSearchModel
+    var id: String { kind.rawValue }
 }
