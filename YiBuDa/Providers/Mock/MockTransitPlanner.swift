@@ -26,7 +26,9 @@ struct MockTransitPlanner: TransitPlanning {
             legs: [
                 .walk(WalkPlanLeg(from: start, to: cityHall, seconds: 360, meters: 420, inStation: false)),
                 .transit(TransitLeg(mode: .metro, line: "板南線", headsign: "往頂埔", from: cityHall, to: taipeiMain,
-                                    departAt: at(8), arriveAt: at(18), stops: midStops, realtime: nil)),
+                                    departAt: at(8), arriveAt: at(18), stops: midStops, realtime: nil,
+                                    railRealtime: RailLegRealtime(system: .trtc, stationID: "BL18", expectedAt: at(9),
+                                                                  delayMinutes: nil, trainNo: nil, destination: "頂埔"))),
                 .walk(WalkPlanLeg(from: taipeiMain, to: end, seconds: 300, meters: 350, inStation: false)),
             ],
             generatedAt: now

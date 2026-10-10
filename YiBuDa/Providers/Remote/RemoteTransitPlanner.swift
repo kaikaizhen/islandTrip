@@ -31,6 +31,71 @@ struct RemoteTransitPlanner: TransitPlanning {
         return Self.updating(realtime, with: response)
     }
 
+    func refreshedRail(_ realtime: RailLegRealtime) async throws -> RailLegRealtime? {
+        let station = RailStation(system: realtime.system, stationID: realtime.stationID, name: "", coordinate: Coordinate(latitude: 0, longitude: 0))
+        let board = try await RemoteRailProvider(client: client).board(for: station)
+        return Self.matching(realtime, in: board.departures, now: Date())
+    }
+
+    func discoverRail(for leg: TransitLeg, now: Date) async throws -> RailLegRealtime? {
+        guard leg.mode == .tra || leg.mode == .metro else { return nil }
+        let rail = RemoteRailProvider(client: client)
+        let stations = try await rail.nearbyStations(around: leg.from.coordinate, radius: 400)
+        for station in Self.candidateStations(stations, for: leg).prefix(4) {
+            let board = try await rail.board(for: station)
+            if let match = Self.discover(leg, in: board.departures, station: station, now: now) { return match }
+        }
+        return nil
+    }
+
+    /// 同系統類別、站名相同（或 80 公尺內），由近到遠；轉乘站每條線各一筆都要試。
+    static func candidateStations(_ stations: [RailStation], for leg: TransitLeg) -> [RailStation] {
+        let wanted = RailName.normalized(leg.from.name)
+        return stations
+            .filter { leg.mode == .tra ? $0.system == .tra : ($0.system != .tra && $0.system != .thsr) }
+            .filter { station in
+                let distance = station.distance ?? Int(Geo.distance(station.coordinate, leg.from.coordinate))
+                return (!wanted.isEmpty && RailName.normalized(station.name) == wanted) ? distance <= 400 : distance <= 80
+            }
+            .sorted { ($0.distance ?? 0) < ($1.distance ?? 0) }
+    }
+
+    /// 與後端相同規則：臺鐵表定開車相差 2 分鐘內且只有一班；捷運同終點最早一班。只用即時資料。
+    static func discover(_ leg: TransitLeg, in departures: [RailDeparture], station: RailStation, now: Date) -> RailLegRealtime? {
+        let live = departures.filter { $0.dataLevel == .realtime && ($0.expectedAt.map { $0 >= now.addingTimeInterval(-60) } ?? false) }
+        let match: RailDeparture?
+        if leg.mode == .tra {
+            guard let planned = leg.departAt else { return nil }
+            let near = live.filter { $0.scheduledAt.map { abs($0.timeIntervalSince(planned)) <= 120 } ?? false }
+            match = near.count == 1 ? near.first : nil
+        } else {
+            let headsign = RailName.normalized(leg.headsign)
+            guard !headsign.isEmpty else { return nil }
+            match = live.filter { RailName.normalized($0.destination) == headsign }
+                .min { ($0.expectedAt ?? .distantFuture) < ($1.expectedAt ?? .distantFuture) }
+        }
+        guard let match, let expectedAt = match.expectedAt else { return nil }
+        return RailLegRealtime(system: station.system, stationID: station.stationID, expectedAt: expectedAt,
+                               delayMinutes: leg.mode == .tra ? match.delayMinutes : nil,
+                               trainNo: leg.mode == .tra ? match.trainNo : nil, destination: match.destination)
+    }
+
+    /// 找同一班車：臺鐵用車次；捷運用終點，取最早一班。只用即時資料。
+    static func matching(_ realtime: RailLegRealtime, in departures: [RailDeparture], now: Date) -> RailLegRealtime? {
+        let live = departures.filter { $0.dataLevel == .realtime && ($0.expectedAt.map { $0 >= now.addingTimeInterval(-60) } ?? false) }
+        let match: RailDeparture?
+        if let trainNo = realtime.trainNo {
+            match = live.first { $0.trainNo == trainNo }
+        } else {
+            match = live.filter { $0.destination == realtime.destination }.min { ($0.expectedAt ?? .distantFuture) < ($1.expectedAt ?? .distantFuture) }
+        }
+        guard let match, let expectedAt = match.expectedAt else { return nil }
+        var updated = realtime
+        updated.expectedAt = expectedAt
+        updated.delayMinutes = realtime.trainNo == nil ? nil : match.delayMinutes
+        return updated
+    }
+
     /// 同一站有多條路線：只取這條路線（附屬路線不明時不比對附屬路線）。
     static func updating(_ realtime: LegRealtime, with response: ArrivalsResponseDTO) -> LegRealtime {
         var updated = realtime
@@ -70,7 +135,13 @@ struct RemoteTransitPlanner: TransitPlanning {
                 from: place(from), to: place(to),
                 departAt: ISODate.parse(dto.departAt), arriveAt: ISODate.parse(dto.arriveAt),
                 stops: (dto.stops ?? []).map(place),
-                realtime: dto.realtime.map { realtime(from: $0, headsign: dto.headsign) }
+                realtime: dto.realtime.map { realtime(from: $0, headsign: dto.headsign) },
+                railRealtime: dto.railRealtime.flatMap { rail in
+                    ISODate.parse(rail.expectedAt).map {
+                        RailLegRealtime(system: rail.system, stationID: rail.stationID, expectedAt: $0,
+                                        delayMinutes: rail.delayMinutes, trainNo: rail.trainNo, destination: rail.destination)
+                    }
+                }
             ))
         default:
             return nil
@@ -140,9 +211,19 @@ struct PlanLegDTO: Decodable, Sendable {
     var arriveAt: String?
     var stops: [PlanPlaceDTO]?
     var realtime: Realtime?
+    var railRealtime: RailRealtime?
+
+    struct RailRealtime: Decodable, Sendable {
+        var system: RailSystem
+        var stationID: String
+        var expectedAt: String
+        var delayMinutes: Int?
+        var trainNo: String?
+        var destination: String?
+    }
 
     private enum CodingKeys: String, CodingKey {
-        case kind, from, to, at, seconds, meters, inStation, mode, line, headsign, departAt, arriveAt, stops, realtime
+        case kind, from, to, at, seconds, meters, inStation, mode, line, headsign, departAt, arriveAt, stops, realtime, railRealtime
     }
 
     init(from decoder: Decoder) throws {
@@ -162,6 +243,8 @@ struct PlanLegDTO: Decodable, Sendable {
         arriveAt = try container.decodeIfPresent(String.self, forKey: .arriveAt)
         stops = try container.decodeIfPresent([PlanPlaceDTO].self, forKey: .stops)
         realtime = try container.decodeIfPresent(Realtime.self, forKey: .realtime)
+        // 不認得的軌道系統等解析失敗時只當成沒有即時資料，不讓整份方案失敗。
+        railRealtime = try? container.decodeIfPresent(RailRealtime.self, forKey: .railRealtime)
     }
 }
 

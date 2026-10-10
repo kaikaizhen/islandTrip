@@ -13,6 +13,8 @@ struct WalkingJourneyPlanner: JourneyWalkPlanning {
     var estimatedWalkingSpeed = 1.0
     /// 直線距離換算實際步行距離的係數（要繞路、等紅綠燈）。
     var detourFactor = 1.4
+    /// 使用者的步行速度倍數（設定「慢慢走」為 1.3）；Apple 地圖的時間以一般人速度估算。
+    var paceFactor = 1.0
 
     private struct Pair: Hashable {
         var from: Coordinate
@@ -57,7 +59,7 @@ struct WalkingJourneyPlanner: JourneyWalkPlanning {
     private func leg(for pair: Pair) async -> WalkLeg {
         do {
             let route = try await routes.walkingRoute(from: pair.from, to: pair.to)
-            return WalkLeg(destinationName: pair.name, seconds: route.expectedSeconds,
+            return WalkLeg(destinationName: pair.name, seconds: Int((Double(route.expectedSeconds) * paceFactor).rounded()),
                            instructions: WalkInstructionBuilder.instructions(for: route, destinationName: pair.name))
         } catch {
             return estimatedLeg(for: pair)
@@ -66,7 +68,7 @@ struct WalkingJourneyPlanner: JourneyWalkPlanning {
 
     /// 無法取得路線時的保守估計：明確標示是估計，不畫成精確路線。
     private func estimatedLeg(for pair: Pair) -> WalkLeg {
-        Self.estimatedLeg(from: pair.from, to: pair.to, name: pair.name, speed: estimatedWalkingSpeed, detourFactor: detourFactor)
+        Self.estimatedLeg(from: pair.from, to: pair.to, name: pair.name, speed: estimatedWalkingSpeed / paceFactor, detourFactor: detourFactor)
     }
 
     /// 直線估計的步行段（也給轉乘導航在取得 Apple 地圖路線前先用）。

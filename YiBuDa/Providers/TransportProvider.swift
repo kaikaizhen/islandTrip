@@ -49,6 +49,15 @@ protocol TransitPlanning: Sendable {
     func plans(from origin: Place, to destination: Place) async throws -> [TransitPlan]
     /// 重新查詢公車段的即時到站（候車時更新倒數）。
     func refreshed(_ realtime: LegRealtime) async throws -> LegRealtime
+    /// 重新查詢捷運、臺鐵段的即時預估；找不到同一班車時回傳 nil（改回表定）。
+    func refreshedRail(_ realtime: RailLegRealtime) async throws -> RailLegRealtime?
+    /// 規劃時還是表定的捷運、臺鐵段：候車時再到車站即時看板找同一班車（臺鐵看板只列快到站的車）。
+    func discoverRail(for leg: TransitLeg, now: Date) async throws -> RailLegRealtime?
+}
+
+extension TransitPlanning {
+    func refreshedRail(_ realtime: RailLegRealtime) async throws -> RailLegRealtime? { realtime }
+    func discoverRail(for leg: TransitLeg, now: Date) async throws -> RailLegRealtime? { nil }
 }
 
 enum TransportProviderError: Error, Equatable {

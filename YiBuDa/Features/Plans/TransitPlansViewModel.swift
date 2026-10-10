@@ -19,28 +19,41 @@ final class TransitPlansViewModel {
     private(set) var plans: [TransitPlan] = []
 
     private let planner: any TransitPlanning
+    private let preference: PlanPreference
     private let now: () -> Date
 
-    init(origin: Place, destination: Place, planner: any TransitPlanning, now: @escaping () -> Date = Date.init) {
+    init(origin: Place, destination: Place, planner: any TransitPlanning, preference: PlanPreference = .fastest,
+         now: @escaping () -> Date = Date.init) {
         self.origin = origin
         self.destination = destination
         self.planner = planner
+        self.preference = preference
         self.now = now
     }
 
     var currentTime: Date { now() }
 
+    /// 最快：抵達時間 → 轉乘數；少轉乘：轉乘數 → 抵達時間；少走路：步行公尺 → 抵達時間。
+    nonisolated static func sorted(_ plans: [TransitPlan], by preference: PlanPreference) -> [TransitPlan] {
+        plans.sorted { lhs, rhs in
+            let left = lhs.endAt ?? .distantFuture, right = rhs.endAt ?? .distantFuture
+            switch preference {
+            case .fastest:
+                return left != right ? left < right : lhs.transfers < rhs.transfers
+            case .fewerTransfers:
+                return lhs.transfers != rhs.transfers ? lhs.transfers < rhs.transfers : left < right
+            case .lessWalking:
+                return lhs.walkMeters != rhs.walkMeters ? lhs.walkMeters < rhs.walkMeters : left < right
+            }
+        }
+    }
+
     func load() async {
         state = .loading
         do {
             let result = try await planner.plans(from: origin, to: destination)
-            // 沒有搭乘段的（全程走路）不算轉乘方案；依抵達時間排序，同時抵達時轉乘少的優先。
-            plans = result
-                .filter { !$0.transitLegs.isEmpty }
-                .sorted { lhs, rhs in
-                    let left = lhs.endAt ?? .distantFuture, right = rhs.endAt ?? .distantFuture
-                    return left != right ? left < right : lhs.transfers < rhs.transfers
-                }
+            // 沒有搭乘段的（全程走路）不算轉乘方案；依使用者偏好排序。
+            plans = Self.sorted(result.filter { !$0.transitLegs.isEmpty }, by: preference)
             state = .loaded
         } catch {
             plans = []

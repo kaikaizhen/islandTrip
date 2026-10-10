@@ -169,9 +169,15 @@ struct PlanRidingView: View {
                             .font(.title2)
                     }
                     if let arriveAt = leg.arriveAt {
-                        Text("表定 \(TransitFormat.clock(arriveAt)) 到")
-                            .font(.title3)
-                            .foregroundStyle(.secondary)
+                        if let delay = leg.railRealtime?.delayMinutes, delay > 0, let expected = leg.expectedArrival {
+                            Text("誤點約 \(delay) 分，預計 \(TransitFormat.clock(expected)) 到（表定 \(TransitFormat.clock(arriveAt))）")
+                                .font(.title3)
+                                .fixedSize(horizontal: false, vertical: true)
+                        } else {
+                            Text("表定 \(TransitFormat.clock(arriveAt)) 到")
+                                .font(.title3)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
                 .card()
@@ -194,6 +200,60 @@ struct PlanRidingView: View {
         case .gps: "快到站時會震動提醒您準備下車。"
         case .schedule: "沒有可靠的定位（例如在地下），會依表定時間提醒；請同時注意車上廣播。"
         case nil: "請聽車上廣播，看到站名再下車。"
+        }
+    }
+}
+
+/// 轉乘可能來不及（Phase 5）：說明原因與依據；需要時提供「從這裡重新規劃」。
+struct TransferWarningBanner: View {
+    let warning: TransferWarning
+    let canReplan: Bool
+    let isReplanning: Bool
+    let onReplan: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SafetyNote(text: title)
+            Text(detail)
+                .font(.body)
+                .fixedSize(horizontal: false, vertical: true)
+            if warning.suggestsReplan {
+                if canReplan {
+                    Button(action: onReplan) {
+                        if isReplanning {
+                            ProgressView("正在重新規劃…")
+                        } else {
+                            Label("從這裡重新規劃", systemImage: "arrow.triangle.2.circlepath")
+                        }
+                    }
+                    .buttonStyle(.secondary)
+                    .disabled(isReplanning)
+                    .accessibilityIdentifier("replan")
+                } else {
+                    Text("下車後可以重新規劃路線。")
+                        .font(.body.weight(.semibold))
+                }
+            }
+        }
+        .card()
+        .accessibilityIdentifier("transferWarning")
+    }
+
+    private var title: String {
+        switch warning.kind {
+        case .currentDeparted: "「\(warning.line)」可能已經開走了"
+        case .likelyMissConnection: "可能趕不上轉乘「\(warning.line)」"
+        case .tightConnection: "轉乘時間很緊：「\(warning.line)」"
+        }
+    }
+
+    private var detail: String {
+        let basis = warning.basedOnRealtime ? "依即時資料" : "依表定時間"
+        let time = warning.departAt.map { "\(TransitFormat.clock($0)) 開" } ?? "開車時間不明"
+        switch warning.kind {
+        case .currentDeparted: return "\(basis)，這班 \(time)。可以重新規劃，或等下一班。"
+        case .likelyMissConnection: return "\(basis)，下一段 \(time)，照目前時間到轉乘站時可能已經開走。"
+        case .tightConnection: return "\(basis)，下一段 \(time)。下車後請直接前往，不要停留。"
         }
     }
 }

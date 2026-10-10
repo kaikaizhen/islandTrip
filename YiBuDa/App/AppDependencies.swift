@@ -73,17 +73,32 @@ struct AppDependencies {
         return UserDefaultsFavoritePlacesStore()
     }
 
+    /// 依設定的趕車預留時間（Phase 5 偏好）。
+    var currentRanking: TransitRankingService {
+        var ranking = ranking
+        ranking.safetyBuffer = TimeInterval(settings.bufferMinutes * 60)
+        return ranking
+    }
+
+    /// 依設定的步行速度；nil 時沿用模擬步行段（UI 測試）。
+    var currentWalkPlanner: (any JourneyWalkPlanning)? {
+        guard walkPlanner != nil else { return nil }
+        var planner = WalkingJourneyPlanner(routes: walkingRoutes)
+        planner.paceFactor = settings.walkingPace.factor
+        return planner
+    }
+
     func makeHomeViewModel() -> HomeViewModel {
         HomeViewModel(places: places, favorites: favorites, currentPlace: currentPlace)
     }
 
     func makeBoardingOptionsViewModel(origin: Place, destination: Place) -> BoardingOptionsViewModel {
         BoardingOptionsViewModel(origin: origin, destination: destination, transport: transport,
-                                 walkPlanner: walkPlanner, alerts: alerts, ranking: ranking)
+                                 walkPlanner: currentWalkPlanner, alerts: alerts, ranking: currentRanking)
     }
 
     func makeTransitPlansViewModel(origin: Place, destination: Place) -> TransitPlansViewModel {
-        TransitPlansViewModel(origin: origin, destination: destination, planner: planner)
+        TransitPlansViewModel(origin: origin, destination: destination, planner: planner, preference: settings.planPreference)
     }
 
     func makeNavigationSessionViewModel(_ request: NavigationRequest) -> NavigationSessionViewModel {
@@ -95,9 +110,9 @@ struct AppDependencies {
         let headingUpdates: (@MainActor () -> AsyncStream<HeadingSample>)? =
             request.tracksLocation ? { @MainActor in heading.headingUpdates() } : nil
         return NavigationSessionViewModel(
-            journey: request.journey, alternatives: request.alternatives, transport: transport, ranking: ranking,
+            journey: request.journey, alternatives: request.alternatives, transport: transport, ranking: currentRanking,
             locationUpdates: updates,
-            walkPlanner: walkPlanner ?? WalkingJourneyPlanner(routes: walkingRoutes),
+            walkPlanner: currentWalkPlanner ?? WalkingJourneyPlanner(routes: walkingRoutes),
             headingUpdates: headingUpdates
         )
     }
@@ -111,7 +126,8 @@ struct AppDependencies {
             request.tracksLocation ? { @MainActor in heading.headingUpdates() } : nil
         return PlanNavigationViewModel(
             plan: request.plan, origin: request.origin, destination: request.destination, planner: planner,
-            locationUpdates: updates, walkPlanner: walkPlanner, headingUpdates: headingUpdates
+            locationUpdates: updates, walkPlanner: currentWalkPlanner, headingUpdates: headingUpdates,
+            paceFactor: settings.walkingPace.factor
         )
     }
 

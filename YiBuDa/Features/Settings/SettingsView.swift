@@ -22,6 +22,24 @@ struct SettingsView: View {
             } footer: {
                 Text(isMockTransit ? "班次目前是模擬資料，站牌在台北市政府附近。不在台北時，可用「模擬」走完公車流程；「步行導航測試」則一律使用 GPS。" : "使用真實班次時請選 GPS；「模擬」只適合沒有網路時展示流程。")
             }
+            Section {
+                Picker("轉乘方案排序", selection: $settings.planPreference) {
+                    ForEach(PlanPreference.allCases, id: \.self) { Text($0.title).tag($0) }
+                }
+                .accessibilityIdentifier("planPreference")
+                Picker("步行速度", selection: $settings.walkingPace) {
+                    ForEach(WalkingPace.allCases, id: \.self) { Text($0.title).tag($0) }
+                }
+                .accessibilityIdentifier("walkingPace")
+                Picker("趕車預留時間", selection: $settings.bufferMinutes) {
+                    ForEach(AppSettings.bufferChoices, id: \.self) { Text("\($0) 分鐘").tag($0) }
+                }
+                .accessibilityIdentifier("bufferMinutes")
+            } header: {
+                Text("路線偏好")
+            } footer: {
+                Text("慢慢走會把步行時間多抓一些；預留時間越長，「趕得上」的判斷越保守。")
+            }
             Section("資料來源") {
                 if isMockTransit {
                     Label("班次：模擬資料（不是即時班次）", systemImage: "testtube.2")
