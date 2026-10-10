@@ -9,6 +9,29 @@ enum TransitFormat {
         return minutes <= 0 ? "即將進站" : "約 \(minutes) 分鐘到"
     }
 
+    /// 路線名拆成主名與補充說明：「小9(台灣好行-北投竹子湖)」→（小9, 台灣好行-北投竹子湖）。
+    /// 主名用大字且不可拆行；補充說明可以換行，避免長路線名把畫面撐出螢幕。
+    static func routeNameParts(_ name: String) -> (main: String, detail: String?) {
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        guard let open = trimmed.firstIndex(where: { $0 == "(" || $0 == "（" }), open != trimmed.startIndex else {
+            return (trimmed, nil)
+        }
+        let main = trimmed[..<open].trimmingCharacters(in: .whitespaces)
+        var detail = trimmed[trimmed.index(after: open)...].trimmingCharacters(in: .whitespaces)
+        if detail.hasSuffix(")") || detail.hasSuffix("）") { detail.removeLast() }
+        return (main, detail.isEmpty ? nil : detail)
+    }
+
+    /// 按鈕等單行處用的短路線名。
+    static func shortRouteName(_ name: String) -> String { routeNameParts(name).main }
+
+    /// 倒數框的內容：大字（分鐘數或狀態）＋小字單位。
+    static func countdownParts(_ arrival: Date?, now: Date, unavailableText: String?) -> (value: String, unit: String?) {
+        guard let arrival else { return (unavailableText ?? "查無即時預估", nil) }
+        let minutes = Int((arrival.timeIntervalSince(now) / 60).rounded(.up))
+        return minutes <= 0 ? ("即將進站", nil) : ("\(minutes)", "分鐘")
+    }
+
     static func walkMinutes(_ seconds: Int) -> String {
         "走過去約 \(max(1, Int((Double(seconds) / 60).rounded(.up)))) 分鐘"
     }

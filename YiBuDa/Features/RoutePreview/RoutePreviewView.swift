@@ -93,7 +93,7 @@ struct RoutePreviewView: View {
     }
 
     private var chooseTitle: String {
-        viewModel.bus.map { "選這個方案（搭 \($0.option.routeName)）" } ?? "選這個方案"
+        viewModel.bus.map { "選這個方案（搭 \(TransitFormat.shortRouteName($0.option.routeName))）" } ?? "選這個方案"
     }
 
     private var map: some View {
