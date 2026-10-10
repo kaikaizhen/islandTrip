@@ -52,7 +52,7 @@ enum NavigationActivityMapper {
             return boardingSide(route: target.routeName, stop: target.stop, resolution: viewModel.boardingResolution, now: now)
         case .waiting:
             guard let leg = viewModel.currentTransit else { return nil }
-            let live = leg.realtime?.arrivalAt
+            let live = leg.realtime?.arrivalAt ?? leg.railRealtime?.expectedAt
             return waiting(route: leg.line, stopName: PlanFormat.place(leg.from, fallback: "車站"),
                            direction: PlanFormat.headsign(leg) ?? "", arrivalAt: live ?? leg.departAt,
                            isScheduled: live == nil, alightName: PlanFormat.place(leg.to, fallback: "下車站"), now: now)
@@ -61,7 +61,7 @@ enum NavigationActivityMapper {
             let status = viewModel.alightStatus
             return riding(route: leg.line, alightName: PlanFormat.place(leg.to, fallback: "下車站"),
                           approaching: status.isApproaching,
-                          remainingStops: status.source == .gps ? status.remainingStops : nil, alightAt: leg.arriveAt, now: now)
+                          remainingStops: status.source == .gps ? status.remainingStops : nil, alightAt: leg.expectedArrival, now: now)
         case .arrived:
             return arrived(viewModel.destination.name, now: now)
         }

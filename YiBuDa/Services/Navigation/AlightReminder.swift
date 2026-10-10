@@ -44,7 +44,8 @@ struct AlightReminder: Sendable {
             let approaching = distanceToAlight <= radius || (remaining.map { $0 <= 1 } ?? false)
             return Status(isApproaching: approaching, source: .gps, remainingStops: remaining)
         }
-        if let arriveAt = leg.arriveAt {
+        // 臺鐵誤點時用順延後的預計抵達時間。
+        if let arriveAt = leg.expectedArrival {
             return Status(isApproaching: now >= arriveAt.addingTimeInterval(-scheduleLeadTime), source: .schedule, remainingStops: nil)
         }
         return Status(isApproaching: false, source: nil, remainingStops: nil)

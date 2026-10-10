@@ -91,6 +91,27 @@ struct TransitLeg: Hashable, Sendable {
     var stops: [PlanPlace]
     /// 對得上 TDX 站牌時的即時到站；nil 代表只有表定時間。
     var realtime: LegRealtime?
+    /// 捷運、臺鐵段對上 TDX 即時看板時的預估開車時間（Phase 5）；nil 代表表定。
+    var railRealtime: RailLegRealtime? = nil
+
+    /// 預計到下車站的時間：臺鐵誤點時順延。
+    var expectedArrival: Date? {
+        guard let arriveAt else { return nil }
+        let delay = railRealtime?.delayMinutes ?? 0
+        return delay > 0 ? arriveAt.addingTimeInterval(TimeInterval(delay * 60)) : arriveAt
+    }
+}
+
+/// 軌道段的即時預估。
+struct RailLegRealtime: Hashable, Sendable {
+    var system: RailSystem
+    var stationID: String
+    var expectedAt: Date
+    /// 臺鐵誤點分鐘（0 為準點）；捷運為 nil。
+    var delayMinutes: Int?
+    /// 臺鐵車次（重新整理時找同一班車）。
+    var trainNo: String?
+    var destination: String?
 }
 
 /// 公車段的即時到站。`arrivalAt` 為 nil 時看 `statusNote`（例：尚未發車）。
@@ -106,4 +127,17 @@ struct LegRealtime: Hashable, Sendable {
     /// 上車站牌與馬路對面同名反方向站牌（判斷上車側用）。
     var boardingStop: Stop?
     var oppositeStop: Stop?
+}
+
+/// 車站名比對：臺／台、去掉「往」「車站」「站」與空白（與後端 normalizeStationName 相同）。
+enum RailName {
+    static func normalized(_ name: String?) -> String {
+        var value = (name ?? "").replacingOccurrences(of: " ", with: "").replacingOccurrences(of: "臺", with: "台")
+        if value.hasPrefix("往") { value.removeFirst() }
+        for suffix in ["車站", "站"] where value.hasSuffix(suffix) {
+            value.removeLast(suffix.count)
+            break
+        }
+        return value
+    }
 }

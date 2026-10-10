@@ -6,6 +6,9 @@ import { parseList } from '../tdx/types.js';
 import type { Arrival, ArrivalService } from './arrivals.js';
 import { toStopDTO, type StopDTO } from './journeys.js';
 import { findOppositeStop } from './matching.js';
+import type { RailDepartureService } from './railDepartures.js';
+import { matchDeparture, matchStations, toRailLegRealtime, type RailLegRealtime } from './railLegMatching.js';
+import type { RailStationStore } from './railStations.js';
 import { TtlCache } from './ttlCache.js';
 import type { CityStaticData, StaticDataStore, StopRecord } from './staticData.js';
 
@@ -46,6 +49,8 @@ export type PlanLeg =
       /** 中途站（含座標，給 App 畫路線示意）。 */
       stops: PlacePoint[];
       realtime: LegRealtime | null;
+      /** 捷運、臺鐵段對上 TDX 即時看板時的預估開車時間；其他為 null（表定）。 */
+      railRealtime: RailLegRealtime | null;
     };
 
 export interface PlanRoute {
@@ -180,6 +185,7 @@ function toLeg(section: MaasSection): PlanLeg | 'unsupported' | undefined {
           stop.departure?.place ? [{ name: stop.departure.place.name ?? null, lat: stop.departure.place.location.lat, lon: stop.departure.place.location.lng }] : [],
         ),
         realtime: null,
+        railRealtime: null,
       };
     case 'drive':
     case 'cycle':
@@ -197,6 +203,8 @@ export interface MaasPlannerOptions {
   maxWalkMinutes?: number;
   /** 同一起訖點（約 100 公尺內）的方案共用多久；即時到站每次重新附上。 */
   cacheTtlMs?: number;
+  /** 提供時，捷運、臺鐵段會嘗試附上即時資訊（Phase 5）。 */
+  rail?: { stations: RailStationStore; departures: RailDepartureService };
 }
 
 /** 跨運具規劃：MaaS 給方案（表定時間），公車段能對回 TDX 的就補上即時到站。 */
@@ -205,6 +213,7 @@ export class MaasPlanner {
   private readonly top: number;
   private readonly maxWalkMinutes: number;
   private readonly cache: TtlCache<PlanRoute[]>;
+  private readonly rail: MaasPlannerOptions['rail'];
 
   constructor(
     private readonly maas: TdxApi,
@@ -217,6 +226,7 @@ export class MaasPlanner {
     this.top = options.top ?? 5;
     this.maxWalkMinutes = options.maxWalkMinutes ?? 15;
     this.cache = new TtlCache(options.cacheTtlMs ?? 60_000, this.now);
+    this.rail = options.rail;
   }
 
   /**
@@ -228,7 +238,7 @@ export class MaasPlanner {
     const cached = await this.cache.get(key, () => this.fetchRoutes(origin, destination));
     // 快取的是表定方案；附即時資料會改動段落，所以每次用複本。
     const routes = structuredClone(cached);
-    await this.attachRealtime(routes);
+    await Promise.all([this.attachRealtime(routes), this.attachRailRealtime(routes)]);
     return { generatedAt: new Date(this.now()).toISOString(), routes };
   }
 
@@ -253,6 +263,34 @@ export class MaasPlanner {
     return parseList(maasRoute, parsed.data.data?.routes ?? [])
       .items.map(toPlanRoute)
       .flatMap((route) => (route ? [route] : []));
+  }
+
+  /** 捷運、臺鐵段：找到上車站與要搭的班次就附上即時預估；任何一步對不上都維持表定。 */
+  private async attachRailRealtime(routes: PlanRoute[]): Promise<void> {
+    if (!this.rail) return;
+    const legs = routes.flatMap((route) => route.legs).flatMap((leg) =>
+      leg.kind === 'transit' && (leg.mode === 'metro' || leg.mode === 'tra') ? [leg] : [],
+    );
+    if (legs.length === 0) return;
+    const stations = await this.rail.stations.all().catch(() => []);
+    // 同一站只查一次發車資料（RailDepartureService 另有短暫快取）。
+    const boards = new Map<string, Promise<Awaited<ReturnType<RailDepartureService['departures']>> | undefined>>();
+    await Promise.all(
+      legs.map(async (leg) => {
+        const mode = leg.mode === 'tra' ? 'tra' : 'metro';
+        // 轉乘站有多筆同名車站（每條線一筆）：依序找，哪一筆有這班車就用哪一筆。
+        for (const station of matchStations(stations, mode, leg.from).slice(0, 4)) {
+          const key = `${station.system}:${station.id}`;
+          if (!boards.has(key)) boards.set(key, this.rail!.departures.departures(station.system, station.id).catch(() => undefined));
+          const board = await boards.get(key)!;
+          const departure = board && matchDeparture(mode, leg, board.departures, this.now());
+          if (departure) {
+            leg.railRealtime = toRailLegRealtime(station, departure);
+            return;
+          }
+        }
+      }),
+    );
   }
 
   /** 公車段：對回 TDX 站牌並查即時到站（同縣市一次批次查詢）。 */

@@ -18,6 +18,19 @@ struct PlanNavigationView: View {
                         .padding(.vertical, 6)
                         .accessibilityIdentifier("transitProgress")
                 }
+                if let warning = viewModel.transferWarning {
+                    TransferWarningBanner(warning: warning, canReplan: viewModel.canReplan, isReplanning: viewModel.isReplanning) {
+                        Task { await viewModel.replan() }
+                    }
+                    .padding(.horizontal, Theme.spacing)
+                }
+                if let message = viewModel.replanMessage {
+                    Label(message, systemImage: "info.circle")
+                        .font(.headline)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, Theme.spacing)
+                        .accessibilityIdentifier("replanMessage")
+                }
                 content
             }
             .navigationTitle(title)
@@ -129,7 +142,9 @@ struct PlanNavigationView: View {
     @ViewBuilder
     private var waitingContent: some View {
         if let leg = viewModel.currentTransit {
-            let refresh: (title: String, action: () -> Void)? = leg.realtime == nil
+            // 捷運、臺鐵即使目前是表定，也定期到即時看板找這班車。
+            let hasLive = leg.realtime != nil || leg.railRealtime != nil || leg.mode == .tra || leg.mode == .metro
+            let refresh: (title: String, action: () -> Void)? = !hasLive
                 ? backAction
                 : ("更新到站時間", { Task { await viewModel.refreshArrival() } })
             PlanWaitingView(leg: leg, now: viewModel.currentTime, notice: viewModel.notice)
@@ -138,7 +153,7 @@ struct PlanNavigationView: View {
                 }
                 .task(id: viewModel.flow.index) {
                     // 有即時資料時每 30 秒更新倒數。
-                    while !Task.isCancelled, leg.realtime != nil {
+                    while !Task.isCancelled, hasLive {
                         try? await Task.sleep(for: .seconds(30))
                         await viewModel.refreshArrival()
                     }

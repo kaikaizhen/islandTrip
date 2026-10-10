@@ -6,11 +6,14 @@ import Observation
 @MainActor
 @Observable
 final class PlanNavigationViewModel {
-    let plan: TransitPlan
+    private(set) var plan: TransitPlan
     let origin: Place
     let destination: Place
     private(set) var flow: PlanNavigationFlow
     private(set) var isFinished = false
+    private(set) var isReplanning = false
+    /// 重新規劃的結果說明（成功改走哪條、或失敗原因）。
+    private(set) var replanMessage: String?
 
     // 步行
     private(set) var tracker: WalkProgressTracker?
@@ -30,6 +33,8 @@ final class PlanNavigationViewModel {
     // 候車
     /// 候車時更新過的公車即時到站（依搭乘段索引）。
     private(set) var liveRealtime: [Int: LegRealtime] = [:]
+    /// 候車時更新過的捷運、臺鐵即時預估；值為 nil 代表找不到同一班車，改回表定。
+    private(set) var liveRail: [Int: RailLegRealtime?] = [:]
     private(set) var notice: String?
 
     // 搭乘
@@ -47,6 +52,8 @@ final class PlanNavigationViewModel {
     private let walkPlanner: (any JourneyWalkPlanning)?
     private let headingUpdates: (@MainActor () -> AsyncStream<HeadingSample>)?
     private let reminder: AlightReminder
+    /// 步行速度倍數（設定「慢慢走」）：轉乘時間檢查用。
+    private let paceFactor: Double
     private let now: () -> Date
 
     init(
@@ -58,6 +65,7 @@ final class PlanNavigationViewModel {
         walkPlanner: (any JourneyWalkPlanning)? = nil,
         headingUpdates: (@MainActor () -> AsyncStream<HeadingSample>)? = nil,
         reminder: AlightReminder = AlightReminder(),
+        paceFactor: Double = 1.0,
         now: @escaping () -> Date = Date.init
     ) {
         self.plan = plan
@@ -69,8 +77,9 @@ final class PlanNavigationViewModel {
         self.headingUpdates = headingUpdates
         self.reminder = reminder
         self.now = now
+        self.paceFactor = paceFactor
         self.flow = PlanNavigationFlow(plan: plan, destinationName: destination.name) { walk, name in
-            WalkingJourneyPlanner.estimatedLeg(from: walk.from.coordinate, to: walk.to.coordinate, name: name)
+            WalkingJourneyPlanner.estimatedLeg(from: walk.from.coordinate, to: walk.to.coordinate, name: name, speed: 1.0 / paceFactor)
         }
     }
 
@@ -81,7 +90,60 @@ final class PlanNavigationViewModel {
     var currentTransit: TransitLeg? {
         guard let index = flow.transitIndex, var leg = flow.transit(at: index) else { return nil }
         if let live = liveRealtime[index] { leg.realtime = live }
+        if let rail = liveRail[index] { leg.railRealtime = rail }
         return leg
+    }
+
+    // MARK: 轉乘來不及（Phase 5）
+
+    /// 目前這段或下一個轉乘可能來不及；只在候車、搭乘時判斷。
+    var transferWarning: TransferWarning? {
+        guard let index = flow.transitIndex, let leg = currentTransit else { return nil }
+        switch stage {
+        case .waiting, .riding:
+            return TransferCheck.evaluate(plan: plan, transitIndex: index, currentLeg: leg, isRiding: stage == .riding(transitIndex: index),
+                                          now: now(), paceFactor: paceFactor)
+        default:
+            return nil
+        }
+    }
+
+    /// 已上車時不重新規劃（人在車上，從這裡規劃會叫人下車步行）；下車後再規劃。
+    var canReplan: Bool {
+        guard !isReplanning, stage != .arrived else { return false }
+        if case .riding = stage { return false }
+        return true
+    }
+
+    /// 從目前位置重新規劃到目的地，改走最早抵達的方案，從第一步開始。
+    func replan() async {
+        guard canReplan else { return }
+        isReplanning = true
+        defer { isReplanning = false }
+        let here = lastSample.map { Place(id: "replan", name: "目前位置", coordinate: $0.coordinate) }
+            ?? currentTransit.map { Place(id: "replan", name: PlanFormat.place($0.from, fallback: "目前位置"), coordinate: $0.from.coordinate) }
+            ?? origin
+        do {
+            let plans = try await planner.plans(from: here, to: destination).filter { !$0.transitLegs.isEmpty }
+            guard let best = TransitPlansViewModel.sorted(plans, by: .fastest).first else {
+                replanMessage = "找不到其他方案，請依現場指示或詢問站務人員。"
+                return
+            }
+            plan = best
+            flow = PlanNavigationFlow(plan: best, destinationName: destination.name) { [paceFactor] walk, name in
+                WalkingJourneyPlanner.estimatedLeg(from: walk.from.coordinate, to: walk.to.coordinate, name: name, speed: 1.0 / paceFactor)
+            }
+            liveRealtime = [:]
+            liveRail = [:]
+            tracker = nil
+            walkingSide = nil
+            alightStatus = AlightReminder.Status(isApproaching: false, source: nil, remainingStops: nil)
+            replanMessage = "已改走新路線：" + best.transitLegs.map(PlanFormat.lineTitle).joined(separator: " → ")
+            syncStage()
+            planWalkingRoutes()
+        } catch {
+            replanMessage = "暫時無法重新規劃，請稍後再試。"
+        }
     }
 
     // MARK: 開始／結束
@@ -109,10 +171,12 @@ final class PlanNavigationViewModel {
             guard case .walk(let leg) = flow.stages[index], let walk = flow.walkEndpoints(at: index) else { return nil }
             return (index, walk, leg.destinationName)
         }
+        planningTask?.cancel()  // 重新規劃後，舊路線的步行規劃不要再寫回來
         planningTask = Task { [weak self] in
             for (index, walk, name) in targets {
                 let leg = await walkPlanner.walkLeg(from: walk.from.coordinate, to: walk.to.coordinate, name: name)
-                guard let self, !Task.isCancelled, !leg.isEstimated else { continue }
+                if Task.isCancelled { return }
+                guard let self, !leg.isEstimated else { continue }
                 // 正在走而且已經往前走了幾步，就不換（避免步驟跳回第一步）。
                 if self.flow.index == index, self.flow.walkStep > 0 { continue }
                 if self.flow.index > index { continue }
@@ -272,11 +336,20 @@ final class PlanNavigationViewModel {
 
     // MARK: 候車
 
-    /// 公車段有即時資料時更新倒數；捷運、火車只有表定，不更新。
+    /// 有即時資料（公車到站、捷運臺鐵看板）時更新倒數；只有表定的段落不更新。
     func refreshArrival() async {
-        guard case .waiting(let index) = stage, let realtime = currentTransit?.realtime else { return }
+        guard case .waiting(let index) = stage, let leg = currentTransit else { return }
         do {
-            liveRealtime[index] = try await planner.refreshed(realtime)
+            if let realtime = leg.realtime {
+                liveRealtime[index] = try await planner.refreshed(realtime)
+            } else if let rail = leg.railRealtime {
+                liveRail[index] = .some(try await planner.refreshedRail(rail))
+            } else if leg.mode == .tra || leg.mode == .metro {
+                // 規劃時是表定：看看車站即時看板上出現這班車了沒。
+                if let found = try await planner.discoverRail(for: leg, now: now()) { liveRail[index] = .some(found) }
+            } else {
+                return
+            }
             notice = nil
         } catch {
             notice = "無法更新到站時間，顯示的可能是舊資料。"
